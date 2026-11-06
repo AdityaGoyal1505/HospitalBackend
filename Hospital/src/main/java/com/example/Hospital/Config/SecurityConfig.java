@@ -63,9 +63,23 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/otp/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public / Read APIs
                         .requestMatchers(HttpMethod.GET, "/api/departments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/hospital-services/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctors/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/packages/**").permitAll()
+                        // Pharmacy / Medicine / Orders / Documents / Devices / Notifications / FAQs / Enquiries
+                        .requestMatchers("/api/medicines/**").permitAll()
+                        .requestMatchers("/api/medicine-orders/**").permitAll()
+                        .requestMatchers("/api/devices/**").permitAll()
+                        .requestMatchers("/api/patients/**").permitAll()
+                        .requestMatchers("/api/documents/**").permitAll()
+                        .requestMatchers("/api/notifications/**").permitAll()
+                        .requestMatchers("/api/faqs/**").permitAll()
+                        .requestMatchers("/api/enquiries/**").permitAll()
+                        // Protected APIs
+                        .requestMatchers("/api/packages/**").hasAnyRole("ADMIN", "RECEPTION")
+                        .requestMatchers("/api/package-enquiries/**").authenticated()
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/appointments/**").authenticated()

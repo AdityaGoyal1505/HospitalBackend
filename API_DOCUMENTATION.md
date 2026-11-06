@@ -18,7 +18,17 @@
 10. [Appointments Endpoints (`/api/appointments`)](#10-appointments-endpoints)
 11. [Visit Notes Endpoints (`/api/visit-notes`)](#11-visit-notes-endpoints)
 12. [Admin User Management Endpoints (`/api/admin/users`)](#12-admin-user-management-endpoints)
-13. [Standard Error Formats](#13-standard-error-formats)
+13. [Medical Packages Endpoints (`/api/packages`)](#13-medical-packages-endpoints)
+14. [Package Enquiries Endpoints (`/api/package-enquiries` & `/api/enquiries/package`)](#14-package-enquiries-endpoints)
+15. [General Hospital Enquiries Endpoints (`/api/enquiries`)](#15-general-hospital-enquiries-endpoints)
+16. [Medicine Catalog & Inventory Endpoints (`/api/medicines`)](#16-medicine-catalog--inventory-endpoints)
+17. [Medicine Orders & Pharmacy Ordering Endpoints (`/api/medicine-orders`)](#17-medicine-orders--pharmacy-ordering-endpoints)
+18. [Patient Documents & Digital Prescriptions (`/api/patients/{patientId}/documents` & `/api/documents`)](#18-patient-documents--digital-prescriptions)
+19. [Push Notifications & Device Token Endpoints (`/api/devices` & `/api/notifications`)](#19-push-notifications--device-token-endpoints)
+20. [Frequently Asked Questions - FAQ Endpoints (`/api/faqs`)](#20-frequently-asked-questions---faq-endpoints)
+21. [Package Enquiry & Reception REST Integration Flow](#21-package-enquiry--reception-rest-integration-flow)
+22. [Pharmacy, Prescription & Order Fulfillment Flow](#22-pharmacy-prescription--order-fulfillment-flow)
+23. [Standard Error Formats](#23-standard-error-formats)
 
 ---
 
@@ -1108,9 +1118,752 @@ Requires `Authorization: Bearer <token>` with `role: "ADMIN"`.
 
 ---
 
-## 13. Standard Error Formats
+## 13. Medical Packages Endpoints (`/api/packages`)
 
-### 13.1 Validation Failure (`400 Bad Request`)
+The Medical Packages module allows the hospital to define health checkup and wellness packages (e.g., Full Body Checkup, Executive Health Checkup, Cardiac Wellness).
+* **Public Access**: Visitors can browse active packages (`GET /api/packages`).
+* **Staff Access**: Hospital Reception and Administrators can add, edit, toggle active status, and delete packages (`POST`, `PUT`, `PATCH`, `DELETE`).
+
+### 13.1 List Medical Packages
+* **Method**: `GET`
+* **Path**: `/api/packages?activeOnly=true`
+* **Authentication**: None (Public)
+* **Query Parameters**:
+  * `activeOnly` (optional, default `true`): If `true`, returns only active packages. Pass `false` for staff dashboard view.
+* **Response `200 OK`**:
+```json
+[
+  {
+    "id": 1,
+    "name": "Comprehensive Full Body Checkup",
+    "description": "Includes Complete Blood Count (CBC), Lipid Profile, Liver Function Test (LFT), Kidney Function Test (KFT), ECG, and Physician Consultation.",
+    "price": 2499.00,
+    "active": true,
+    "createdAt": "2026-11-02T10:00:00Z",
+    "updatedAt": "2026-11-02T10:00:00Z"
+  }
+]
+```
+
+### 13.2 Get Medical Package by ID
+* **Method**: `GET`
+* **Path**: `/api/packages/{id}`
+* **Authentication**: None (Public)
+* **Response `200 OK`**: Single package object.
+
+### 13.3 Create Medical Package (Reception & Admin)
+* **Method**: `POST`
+* **Path**: `/api/packages`
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Request Body**:
+```json
+{
+  "name": "Cardiac Wellness Package",
+  "description": "Targeted cardiology package including ECG, Lipid Profile, Troponin, 2D Echocardiogram, and consultation with a Senior Cardiologist.",
+  "price": 3499.00
+}
+```
+* **Response `201 Created`**: Newly created package object.
+
+### 13.4 Update Medical Package (Reception & Admin)
+* **Method**: `PUT`
+* **Path**: `/api/packages/{id}`
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Request Body**:
+```json
+{
+  "name": "Executive Health & Cardiac Wellness",
+  "description": "Updated description with ultrasound and echo.",
+  "price": 4299.00,
+  "active": true
+}
+```
+* **Response `200 OK`**: Updated package object.
+
+### 13.5 Toggle Package Active Status
+* **Method**: `PATCH`
+* **Path**: `/api/packages/{id}/status?active=false`
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Response `200 OK`**: Package object with updated `active` field.
+
+### 13.6 Delete Medical Package
+* **Method**: `DELETE`
+* **Path**: `/api/packages/{id}`
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Response**: `204 No Content`
+
+---
+
+## 14. Package Enquiries Endpoints (`/api/package-enquiries` & `/api/enquiries/package`)
+
+Package enquiries allow authenticated patients to enquire about specific health checkup packages.
+* **Aliases**: Accessible at `/api/package-enquiries`, `/api/packages/enquiries`, and convenient bridge `/api/enquiries/package`.
+* **Automatic Profile Defaulting**: If `name`, `phone`, or `email` are omitted in the request, the backend automatically fills them from the authenticated user's profile.
+* **Access Control**: Patients can create and query their own enquiries (`GET /api/package-enquiries/my` or `GET /api/enquiries/my`). Staff (`RECEPTION` or `ADMIN`) can view all enquiries, filter by status, and update notes.
+
+### 14.1 Submit Package Enquiry
+* **Method**: `POST`
+* **Path**: `/api/package-enquiries` (or `/api/enquiries/package`)
+* **Authentication**: Bearer token (Authenticated User)
+* **Request Body**:
+```json
+{
+  "name": "Alice Sharma",
+  "phone": "+919876543210",
+  "email": "alice@example.com",
+  "packageName": "Comprehensive Full Body Checkup",
+  "packageId": 1,
+  "message": "Interested in morning slot this Saturday"
+}
+```
+* **Response `201 Created`**:
+```json
+{
+  "id": 1,
+  "userId": 5,
+  "name": "Alice Sharma",
+  "phone": "+919876543210",
+  "email": "alice@example.com",
+  "packageName": "Comprehensive Full Body Checkup",
+  "packageId": 1,
+  "message": "Interested in morning slot this Saturday",
+  "status": "PENDING",
+  "contactNotes": null,
+  "contactedByUserId": null,
+  "contactedByUserName": null,
+  "contactedAt": null,
+  "createdAt": "2026-11-03T10:15:30Z",
+  "updatedAt": "2026-11-03T10:15:30Z"
+}
+```
+
+### 14.2 Get My Package Enquiries
+* **Method**: `GET`
+* **Path**: `/api/package-enquiries/my` (or `/api/enquiries/my`)
+* **Authentication**: Bearer token (Authenticated User)
+* **Response `200 OK`**: List of `PackageEnquiryResponse` objects for the authenticated user.
+
+### 14.3 List All Package Enquiries (Staff & Admin)
+* **Method**: `GET`
+* **Path**: `/api/package-enquiries`
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Query Parameters**:
+  * `status` (optional): `PENDING`, `CONTACTED`, `RESOLVED`, `CANCELLED`
+* **Response `200 OK`**: List of `PackageEnquiryResponse` objects.
+
+### 14.4 Get Package Enquiry by ID
+* **Method**: `GET`
+* **Path**: `/api/package-enquiries/{id}`
+* **Authentication**: Bearer token (Enquiry Owner, `RECEPTION`, or `ADMIN`)
+* **Response `200 OK`**: `PackageEnquiryResponse` object.
+
+### 14.5 Update Package Enquiry Status & Contact Notes
+* **Method**: `PATCH`
+* **Path**: `/api/package-enquiries/{id}/status` (or `/api/enquiries/{id}/status`)
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Request Body**:
+```json
+{
+  "status": "CONTACTED",
+  "contactNotes": "Contacted via phone call. Patient confirmed morning arrival for fasting blood draw."
+}
+```
+* **Response `200 OK`**: Updated `PackageEnquiryResponse` with staff member ID and timestamp.
+
+### 14.6 Delete Package Enquiry
+* **Method**: `DELETE`
+* **Path**: `/api/package-enquiries/{id}`
+* **Authentication**: Bearer token (`RECEPTION` or `ADMIN`)
+* **Response**: `204 No Content`
+
+---
+
+## 15. General Hospital Enquiries Endpoints (`/api/enquiries`)
+
+General enquiries allow prospective or existing patients to ask general hospital questions, request department contact, inquire about treatments, or schedule callback consultations.
+
+### 15.1 Submit General Enquiry
+* **Method**: `POST`
+* **Path**: `/api/enquiries`
+* **Authentication**: Public / Optional Bearer token
+* **Request Body**:
+```json
+{
+  "patientId": 5,
+  "patientName": "Robert Davis",
+  "patientEmail": "robert.davis@example.com",
+  "patientPhone": "+919876543210",
+  "country": "India",
+  "enquiryType": "TREATMENT",
+  "message": "Do you provide robotic knee replacement consultations on weekends?",
+  "treatmentInterest": "Orthopedics & Joint Replacement",
+  "preferredDate": "2026-11-20"
+}
+```
+* **Enquiry Types**: `GENERAL`, `TREATMENT`, `APPOINTMENT`, `SECOND_OPINION`, `CONTACT`
+* **Response `201 Created`**:
+```json
+{
+  "id": 1,
+  "patientId": 5,
+  "patientName": "Robert Davis",
+  "patientEmail": "robert.davis@example.com",
+  "patientPhone": "+919876543210",
+  "country": "India",
+  "enquiryType": "TREATMENT",
+  "message": "Do you provide robotic knee replacement consultations on weekends?",
+  "treatmentInterest": "Orthopedics & Joint Replacement",
+  "preferredDate": "2026-11-20",
+  "status": "NEW",
+  "staffResponse": null,
+  "respondedAt": null,
+  "createdAt": "2026-11-06T18:00:00Z",
+  "updatedAt": "2026-11-06T18:00:00Z"
+}
+```
+
+### 15.2 List General Enquiries (Paginated)
+* **Method**: `GET`
+* **Path**: `/api/enquiries`
+* **Query Parameters**:
+  * `status` (optional): `NEW`, `IN_REVIEW`, `RESPONDED`, `CLOSED`
+  * `page` (optional, default `0`): Page index
+  * `size` (optional, default `20`): Page size
+  * `sort` (optional, default `createdAt,desc`): Sorting field and direction
+* **Response `200 OK`**: Spring Data `Page<EnquiryResponseDTO>`.
+
+### 15.3 Get General Enquiry by ID
+* **Method**: `GET`
+* **Path**: `/api/enquiries/{id}`
+* **Response `200 OK`**: `EnquiryResponseDTO`.
+
+### 15.4 Update Status & Staff Response
+* **Method**: `PATCH`
+* **Path**: `/api/enquiries/{id}`
+* **Request Body**:
+```json
+{
+  "status": "RESPONDED",
+  "staffResponse": "Yes, our Senior Orthopedic Surgeon is available on Saturday mornings. We have reserved a preliminary slot for you."
+}
+```
+* **Response `200 OK`**: `EnquiryResponseDTO` with updated status, response text, and `respondedAt` timestamp.
+
+### 15.5 Delete General Enquiry
+* **Method**: `DELETE`
+* **Path**: `/api/enquiries/{id}`
+* **Response**: `204 No Content`
+
+---
+
+## 16. Medicine Catalog & Inventory Endpoints (`/api/medicines`)
+
+Manages the hospital pharmacy inventory, medication pricing, prescription requirements, and real-time stock levels.
+
+### 16.1 Add New Medicine (Staff & Admin)
+* **Method**: `POST`
+* **Path**: `/api/medicines`
+* **Request Body**:
+```json
+{
+  "medicineName": "Amoxicillin 500mg",
+  "description": "Broad-spectrum penicillin antibiotic capsule.",
+  "price": 45.00,
+  "requiresPrescription": true,
+  "active": true,
+  "quantity": 250
+}
+```
+* **Response `201 Created`**:
+```json
+{
+  "medicineId": 12,
+  "medicineName": "Amoxicillin 500mg",
+  "description": "Broad-spectrum penicillin antibiotic capsule.",
+  "price": 45.00,
+  "requiresPrescription": true,
+  "active": true,
+  "quantity": 250,
+  "createdAt": "2026-11-06T18:10:00Z",
+  "updatedAt": "2026-11-06T18:10:00Z"
+}
+```
+
+### 16.2 Browse Active Medicines (Patients & Public)
+* **Method**: `GET`
+* **Path**: `/api/medicines`
+* **Query Parameters**:
+  * `name` (optional): Case-insensitive search filter by medicine name
+  * `page` (default `0`), `size` (default `20`), `sort` (default `medicineName,asc`)
+* **Response `200 OK`**: `Page<MedicineResponseDTO>` containing only active medicines.
+
+### 16.3 Get Active Medicine Details
+* **Method**: `GET`
+* **Path**: `/api/medicines/{id}`
+* **Response `200 OK`**: `MedicineResponseDTO` if medicine is active.
+
+### 16.4 Admin List All Medicines (Including Inactive)
+* **Method**: `GET`
+* **Path**: `/api/medicines/admin`
+* **Query Parameters**: `page`, `size`, `sort`
+* **Response `200 OK`**: `Page<MedicineResponseDTO>`.
+
+### 16.5 Low Stock Warning List
+* **Method**: `GET`
+* **Path**: `/api/medicines/low-stock`
+* **Query Parameters**: `page`, `size`, `sort`
+* **Description**: Returns all medicines with quantity below the threshold (default: `<= 5`).
+* **Response `200 OK`**: `Page<MedicineResponseDTO>`.
+
+### 16.6 Full Update of Medicine
+* **Method**: `PUT`
+* **Path**: `/api/medicines/{id}`
+* **Request Body**: Same schema as `POST /api/medicines`.
+* **Response `200 OK`**: Updated `MedicineResponseDTO`.
+
+### 16.7 Update Medicine Price
+* **Method**: `PATCH`
+* **Path**: `/api/medicines/{id}/price?price=49.99`
+* **Response `200 OK`**: Updated `MedicineResponseDTO`.
+
+### 16.8 Update Medicine Stock
+* **Method**: `PATCH`
+* **Path**: `/api/medicines/{id}/stock`
+* **Request Body**:
+```json
+{
+  "quantity": 500
+}
+```
+* **Response `200 OK`**: Updated `MedicineResponseDTO`.
+
+### 16.9 Activate & Deactivate Medicine
+* **Method**: `PATCH`
+* **Paths**:
+  * `/api/medicines/{id}/deactivate` -> `204 No Content`
+  * `/api/medicines/{id}/activate` -> `204 No Content`
+
+### 16.10 Delete Medicine
+* **Method**: `DELETE`
+* **Path**: `/api/medicines/{id}`
+* **Response**: `204 No Content`
+
+---
+
+## 17. Medicine Orders & Pharmacy Ordering Endpoints (`/api/medicine-orders`)
+
+Enables patients to purchase medications online with uploaded prescriptions, delivery addresses, and contact phone numbers. Supports idempotency keys to prevent duplicate billing.
+
+### 17.1 Place Medicine Order
+* **Method**: `POST`
+* **Path**: `/api/medicine-orders`
+* **Headers**:
+  * `Idempotency-Key` (optional, recommended): Unique UUID/string per order attempt
+* **Request Body**:
+```json
+{
+  "patientId": 5,
+  "items": [
+    {
+      "medicineId": 12,
+      "quantity": 2
+    },
+    {
+      "medicineId": 14,
+      "quantity": 1
+    }
+  ],
+  "prescriptionDocumentId": 3,
+  "deliveryAddress": "Flat 402, Green Valley Apartments, Mumbai, Maharashtra 400001",
+  "contactPhone": "+919876543210"
+}
+```
+* **Stock Validation & Deduction**:
+  * Atomically validates stock availability for each item.
+  * Decrements stock in the database upon order creation.
+* **Response `201 Created`**:
+```json
+{
+  "id": 101,
+  "orderReference": "ORD-20261106-9281A",
+  "patientId": 5,
+  "items": [
+    {
+      "id": 1,
+      "medicineId": 12,
+      "quantity": 2,
+      "unitPrice": 45.00,
+      "subtotal": 90.00
+    },
+    {
+      "id": 2,
+      "medicineId": 14,
+      "quantity": 1,
+      "unitPrice": 120.00,
+      "subtotal": 120.00
+    }
+  ],
+  "totalAmount": 210.00,
+  "prescriptionFile": "doc_3_prescription.pdf",
+  "deliveryAddress": "Flat 402, Green Valley Apartments, Mumbai, Maharashtra 400001",
+  "contactPhone": "+919876543210",
+  "status": "PENDING",
+  "createdAt": "2026-11-06T18:25:00Z",
+  "updatedAt": "2026-11-06T18:25:00Z"
+}
+```
+
+### 17.2 List Orders (Paginated & Filterable)
+* **Method**: `GET`
+* **Path**: `/api/medicine-orders`
+* **Query Parameters**:
+  * `patientId` (optional): Filter orders for a specific patient
+  * `status` (optional): Filter by `PENDING`, `CONFIRMED`, `DISPATCHED`, `DELIVERED`, `CANCELLED`
+  * `page`, `size`, `sort`
+* **Response `200 OK`**: `Page<MedicineOrderResponseDTO>`.
+
+### 17.3 Get Order by ID
+* **Method**: `GET`
+* **Path**: `/api/medicine-orders/{id}`
+* **Response `200 OK`**: `MedicineOrderResponseDTO`.
+
+### 17.4 Update Order Status (Pharmacy Staff)
+* **Method**: `PATCH`
+* **Path**: `/api/medicine-orders/{id}/status`
+* **Request Body**:
+```json
+{
+  "status": "CONFIRMED",
+  "staffNotes": "Prescription verified by Pharmacist. Packed and ready for dispatch."
+}
+```
+* **Order Statuses**: `PENDING`, `CONFIRMED`, `DISPATCHED`, `DELIVERED`, `CANCELLED`
+* **Response `200 OK`**: Updated `MedicineOrderResponseDTO`.
+
+### 17.5 Cancel Order (Automatic Inventory Refund)
+* **Method**: `POST`
+* **Path**: `/api/medicine-orders/{id}/cancel`
+* **Query Parameters**:
+  * `patientId`: The ID of the patient cancelling
+  * `reason` (optional): Reason for cancellation
+* **Behavior**: If the order is in `PENDING` or `CONFIRMED` status, sets status to `CANCELLED` and **automatically refunds ordered quantities back to medicine stock**.
+* **Response `200 OK`**: Updated `MedicineOrderResponseDTO` with status `CANCELLED`.
+
+---
+
+## 18. Patient Documents & Digital Prescriptions (`/api/patients/{patientId}/documents` & `/api/documents`)
+
+Secure storage and retrieval for patient medical records, lab reports, doctor prescriptions, and insurance documents.
+
+### 18.1 Upload Patient Document
+* **Method**: `POST`
+* **Path**: `/api/patients/{patientId}/documents`
+* **Content-Type**: `multipart/form-data`
+* **Form Parameters**:
+  * `file`: Binary file (PDF, PNG, JPG; max 5MB)
+  * `documentType`: `PRESCRIPTION`, `LAB_REPORT`, `DISCHARGE_SUMMARY`, `INSURANCE_CLAIM`, `OTHER`
+  * `uploadedById` (optional): User ID of uploader (defaults to patient if omitted)
+* **Response `201 Created`**:
+```json
+{
+  "id": 8,
+  "patientId": 5,
+  "uploadedById": 5,
+  "documentType": "PRESCRIPTION",
+  "originalFilename": "prescription_nov2026.pdf",
+  "contentType": "application/pdf",
+  "fileSize": 184520,
+  "createdAt": "2026-11-06T18:30:00Z"
+}
+```
+
+### 18.2 List Patient Documents
+* **Method**: `GET`
+* **Path**: `/api/patients/{patientId}/documents`
+* **Query Parameters**:
+  * `documentType` (optional): Filter by enum value
+  * `page`, `size`, `sort`
+* **Response `200 OK`**: `Page<PatientDocumentResponseDTO>`.
+
+### 18.3 Get Document Metadata
+* **Method**: `GET`
+* **Path**: `/api/documents/{id}`
+* **Response `200 OK`**: `PatientDocumentResponseDTO`.
+
+### 18.4 Download Document Binary
+* **Method**: `GET`
+* **Path**: `/api/documents/{id}/download`
+* **Response `200 OK`**: Raw binary file stream with `Content-Type: application/pdf` (or original mime type) and `Content-Disposition: inline; filename="..."`.
+
+### 18.5 Delete Document
+* **Method**: `DELETE`
+* **Path**: `/api/documents/{id}`
+* **Behavior**: Deletes metadata from the database and safely unlinks the file from private disk storage.
+* **Response**: `204 No Content`
+
+---
+
+## 19. Push Notifications & Device Token Endpoints (`/api/devices` & `/api/notifications`)
+
+Manages client push device tokens (FCM/APNS) and in-app notifications for appointment reminders, order updates, and enquiry responses.
+
+### 19.1 Register Push Device Token
+* **Method**: `POST`
+* **Path**: `/api/devices/register`
+* **Request Body**:
+```json
+{
+  "userId": 5,
+  "token": "fcm_device_token_sample_string_89123891",
+  "platform": "ANDROID"
+}
+```
+* **Platforms**: `ANDROID`, `IOS`, `WEB`
+* **Response `200 OK`**:
+```json
+{
+  "id": 1,
+  "platform": "ANDROID",
+  "createdAt": "2026-11-06T18:35:00Z",
+  "updatedAt": "2026-11-06T18:35:00Z"
+}
+```
+
+### 19.2 List Registered Devices for User
+* **Method**: `GET`
+* **Path**: `/api/devices/user/{userId}`
+* **Response `200 OK`**: List of `DeviceResponseDTO` objects.
+
+### 19.3 Unregister Device Token
+* **Method**: `DELETE`
+* **Path**: `/api/devices/token/{token}`
+* **Response**: `204 No Content`
+
+### 19.4 List In-App Notifications
+* **Method**: `GET`
+* **Path**: `/api/notifications`
+* **Query Parameters**:
+  * `userId`: User ID
+  * `page`, `size`, `sort`
+* **Response `200 OK`**:
+```json
+{
+  "content": [
+    {
+      "id": 15,
+      "title": "Order Confirmed",
+      "message": "Your medicine order ORD-20261106-9281A has been verified and confirmed.",
+      "type": "ORDER_STATUS",
+      "read": false,
+      "createdAt": "2026-11-06T18:26:00Z"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+### 19.5 Get Unread Notifications Count
+* **Method**: `GET`
+* **Path**: `/api/notifications/unread-count?userId=5`
+* **Response `200 OK`**:
+```json
+{
+  "unreadCount": 3
+}
+```
+
+### 19.6 Mark Notification as Read
+* **Method**: `PATCH`
+* **Path**: `/api/notifications/{id}/read?userId=5`
+* **Response `200 OK`**: Updated `NotificationResponseDTO` with `read: true`.
+
+### 19.7 Mark All Notifications Read
+* **Method**: `PATCH`
+* **Path**: `/api/notifications/read-all?userId=5`
+* **Response**: `204 No Content`
+
+### 19.8 Delete Notification
+* **Method**: `DELETE`
+* **Path**: `/api/notifications/{id}?userId=5`
+* **Response**: `204 No Content`
+
+---
+
+## 20. Frequently Asked Questions - FAQ Endpoints (`/api/faqs`)
+
+Manages public and administrative FAQ sections with categories, instant search, and activation status.
+
+### 20.1 Browse Active FAQs (Public)
+* **Method**: `GET`
+* **Path**: `/api/faqs`
+* **Query Parameters**:
+  * `category` (optional): Filter by category (e.g., `Appointments`, `Insurance`, `Pharmacy`, `Emergency`)
+  * `page`, `size`, `sort`
+* **Response `200 OK`**: `Page<FaqResponseDTO>`.
+
+### 20.2 Get Single FAQ
+* **Method**: `GET`
+* **Path**: `/api/faqs/{faqId}`
+* **Response `200 OK`**: `FaqResponseDTO`.
+
+### 20.3 Admin List All FAQs (Including Inactive)
+* **Method**: `GET`
+* **Path**: `/api/faqs/admin`
+* **Query Parameters**: `page`, `size`, `sort`
+* **Response `200 OK`**: `Page<FaqResponseDTO>`.
+
+### 20.4 Create FAQ (Admin / Staff)
+* **Method**: `POST`
+* **Path**: `/api/faqs`
+* **Request Body**:
+```json
+{
+  "question": "What documents are required during admission?",
+  "answer": "Please bring a government photo ID (Aadhaar/PAN/Passport), your health insurance card, and recent doctor prescriptions or discharge summaries.",
+  "category": "Admission",
+  "active": true
+}
+```
+* **Response `201 Created`**:
+```json
+{
+  "faqId": 7,
+  "question": "What documents are required during admission?",
+  "answer": "Please bring a government photo ID (Aadhaar/PAN/Passport), your health insurance card, and recent doctor prescriptions or discharge summaries.",
+  "category": "Admission",
+  "active": true,
+  "createdAt": "2026-11-06T18:40:00Z",
+  "updatedAt": "2026-11-06T18:40:00Z"
+}
+```
+
+### 20.5 Update FAQ
+* **Method**: `PATCH`
+* **Path**: `/api/faqs/{faqId}`
+* **Request Body**:
+```json
+{
+  "question": "What documents do I need to bring during hospital admission?",
+  "answer": "Bring any government photo ID, insurance card, and medical reports."
+}
+```
+* **Response `200 OK`**: Updated `FaqResponseDTO`.
+
+### 20.6 Activate & Deactivate FAQ
+* **Method**: `PATCH`
+* **Paths**:
+  * `/api/faqs/{faqId}/deactivate` -> `204 No Content`
+  * `/api/faqs/{faqId}/activate` -> `204 No Content`
+
+### 20.7 Delete FAQ
+* **Method**: `DELETE`
+* **Path**: `/api/faqs/{faqId}`
+* **Response**: `204 No Content`
+
+---
+
+## 21. Package Enquiry & Reception REST Integration Flow
+
+```
+                      [ USER / PATIENT FLOW ]
+                                   │
+                   1. User logs in via OTP
+                      POST /api/auth/otp/login/request
+                      POST /api/auth/otp/login/verify
+                      -> Receives JWT Bearer accessToken
+                                   │
+                                   ▼
+                   2. Browse available health packages
+                      GET /api/packages?activeOnly=true
+                                   │
+                                   ▼
+                   3. User submits package enquiry
+                      POST /api/package-enquiries (or /api/enquiries/package)
+                      Payload: { packageName, name, phone, email, message }
+                      (Contact info auto-fills from user account if omitted)
+                                   │
+                                   ▼
+                   4. User tracks their enquiries
+                      GET /api/package-enquiries/my (Bearer accessToken)
+                                   │
+                                   ▼
+             ══════════════════════════════════════════════════
+             [ RECEPTION / ADMIN DASHBOARD (Bearer Token) ]
+             ══════════════════════════════════════════════════
+                                   │
+                   5. Reception views pending enquiries
+                      GET /api/package-enquiries?status=PENDING
+                      (Requires RECEPTION or ADMIN role)
+                                   │
+                                   ▼
+                   6. Reception contacts applicant & updates status
+                      PATCH /api/package-enquiries/{id}/status
+                      Payload: { status: "CONTACTED", contactNotes: "..." }
+                      • Sets status to CONTACTED
+                      • Records contact notes
+                      • Attaches contactedBy staff user ID & timestamp
+                                   │
+                                   ▼
+                   7. Reception & Admin can add/manage packages
+                      POST /api/packages
+                      Payload: { name, description, price }
+                      (Requires RECEPTION or ADMIN role)
+```
+
+---
+
+## 22. Pharmacy, Prescription & Order Fulfillment Flow
+
+```
+                      [ PATIENT PHARMACY ORDER FLOW ]
+                                     │
+                   1. Patient uploads prescription document
+                      POST /api/patients/{patientId}/documents
+                      (Multipart upload -> returns documentId: 8)
+                                     │
+                                     ▼
+                   2. Patient searches and selects medicines
+                      GET /api/medicines?name=Amoxicillin
+                                     │
+                                     ▼
+                   3. Patient places order with idempotency key
+                      POST /api/medicine-orders
+                      Header: Idempotency-Key: <unique-uuid>
+                      Payload: { patientId, items, prescriptionDocumentId: 8, deliveryAddress, contactPhone }
+                      (System validates and decrements medicine inventory)
+                                     │
+                                     ▼
+                   4. Push & in-app notification delivered
+                      GET /api/notifications?userId={patientId}
+                                     │
+                                     ▼
+             ══════════════════════════════════════════════════
+             [ PHARMACY STAFF & DISPATCH FULFILLMENT ]
+             ══════════════════════════════════════════════════
+                                     │
+                   5. Pharmacy reviews incoming order & prescription
+                      GET /api/medicine-orders/{id}
+                      GET /api/documents/{prescriptionDocumentId}/download
+                                     │
+                                     ▼
+                   6. Staff confirms and dispatches medication
+                      PATCH /api/medicine-orders/{id}/status
+                      Payload: { status: "CONFIRMED", staffNotes: "Verified" }
+                      PATCH /api/medicine-orders/{id}/status
+                      Payload: { status: "DISPATCHED", staffNotes: "Out for delivery" }
+                                     │
+                                     ▼
+                   7. If cancelled by patient or pharmacy:
+                      POST /api/medicine-orders/{id}/cancel
+                      (System automatically refunds inventory back to stock)
+```
+
+---
+
+## 23. Standard Error Formats
+
+### 23.1 Validation Failure (`400 Bad Request`)
 ```json
 {
   "timestamp": "2026-10-29T10:00:00.123Z",
@@ -1123,25 +1876,25 @@ Requires `Authorization: Bearer <token>` with `role: "ADMIN"`.
 }
 ```
 
-### 13.2 Resource Not Found (`404 Not Found`)
+### 23.2 Resource Not Found (`404 Not Found`)
 ```json
 {
   "timestamp": "2026-10-29T10:00:00.123Z",
   "status": 404,
-  "error": "Doctor not found with id: 99"
+  "error": "Resource not found with id: 99"
 }
 ```
 
-### 13.3 Conflict / Duplicate (`409 Conflict`)
+### 23.3 Conflict / Duplicate (`409 Conflict`)
 ```json
 {
   "timestamp": "2026-10-29T10:00:00.123Z",
   "status": 409,
-  "error": "Phone number is already registered"
+  "error": "Resource with given unique identifier already exists"
 }
 ```
 
-### 13.4 Unauthorized / Forbidden (`401` / `403`)
+### 23.4 Unauthorized / Forbidden (`401` / `403`)
 ```json
 {
   "timestamp": "2026-10-29T10:00:00.123Z",

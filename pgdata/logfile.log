@@ -1,0 +1,29 @@
+2026-11-06 18:35:17.759 IST [24336] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-11-06 18:35:17.767 IST [24336] LOG:  could not bind IPv6 address "::1": Permission denied
+2026-11-06 18:35:17.767 IST [24336] LOG:  could not bind IPv4 address "127.0.0.1": Permission denied
+2026-11-06 18:35:17.767 IST [24336] WARNING:  could not create listen socket for "localhost"
+2026-11-06 18:35:17.767 IST [24336] FATAL:  could not create any TCP/IP sockets
+2026-11-06 18:35:17.770 IST [24336] LOG:  database system is shut down
+2026-11-06 18:36:36.332 IST [20644] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-11-06 18:36:36.341 IST [20644] LOG:  could not bind IPv6 address "::1": Permission denied
+2026-11-06 18:36:36.341 IST [20644] LOG:  could not bind IPv4 address "127.0.0.1": Permission denied
+2026-11-06 18:36:36.341 IST [20644] WARNING:  could not create listen socket for "localhost"
+2026-11-06 18:36:36.341 IST [20644] FATAL:  could not create any TCP/IP sockets
+2026-11-06 18:36:36.345 IST [20644] LOG:  database system is shut down
+2026-11-06 18:37:07.176 IST [18140] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-11-06 18:37:07.179 IST [18140] LOG:  listening on IPv4 address "127.0.0.1", port 54321
+2026-11-06 18:37:07.854 IST [9900] LOG:  database system was shut down at 2026-11-06 18:35:04 IST
+2026-11-06 18:37:07.898 IST [18140] LOG:  database system is ready to accept connections
+2026-11-06 18:38:27.380 IST [21444] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-11-06 18:38:27.382 IST [21444] LOG:  listening on IPv4 address "127.0.0.1", port 54321
+2026-11-06 18:38:27.798 IST [25196] LOG:  database system was interrupted; last known up at 2026-11-06 18:37:07 IST
+2026-11-06 18:38:34.090 IST [25196] LOG:  could not open file "./logfile.log": sharing violation
+2026-11-06 18:38:34.090 IST [25196] DETAIL:  Continuing to retry for 30 seconds.
+2026-11-06 18:38:34.090 IST [25196] HINT:  You might have antivirus, backup, or similar software interfering with the database system.
+2026-11-06 18:39:01.226 IST [25196] LOG:  syncing data directory (fsync), elapsed time: 33.42 s, current path: ./pg_commit_ts
+2026-11-06 18:39:01.276 IST [25196] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-11-06 18:39:01.294 IST [25196] LOG:  invalid record length at 0/17F1330: expected at least 24, got 0
+2026-11-06 18:39:01.295 IST [25196] LOG:  redo is not required
+2026-11-06 18:39:01.312 IST [24948] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-11-06 18:39:01.346 IST [24948] LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.006 s, sync=0.003 s, total=0.039 s; sync files=2, longest=0.002 s, average=0.002 s; distance=0 kB, estimate=0 kB; lsn=0/17F1330, redo lsn=0/17F1330
+2026-11-06 18:39:01.362 IST [21444] LOG:  database system is ready to accept connections

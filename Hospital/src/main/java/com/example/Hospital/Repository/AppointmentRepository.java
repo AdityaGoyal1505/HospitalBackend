@@ -6,7 +6,6 @@ import com.example.Hospital.model.DoctorSchedule;
 import com.example.Hospital.model.enums.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.DayOfWeek;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
