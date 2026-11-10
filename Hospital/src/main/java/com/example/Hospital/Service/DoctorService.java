@@ -48,6 +48,10 @@ public class DoctorService {
         doc.setQualification(req.getQualification() != null ? req.getQualification().trim() : null);
         doc.setExperience(req.getExperience());
 
+        if (req.getImageUrl() != null && !req.getImageUrl().isBlank()) {
+            doc.setImageUrl(req.getImageUrl().trim());
+        }
+
         if (req.getUserId() != null) {
             User user = userRepository.findById(req.getUserId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -106,6 +110,10 @@ public class DoctorService {
             doc.setExperience(req.getExperience());
         }
 
+        if (req.getImageUrl() != null) {
+            doc.setImageUrl(req.getImageUrl().isBlank() ? null : req.getImageUrl().trim());
+        }
+
         if (req.getDepartmentId() != null) {
             Department department = departmentRepository.findById(req.getDepartmentId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Department not found"));
@@ -116,6 +124,28 @@ public class DoctorService {
             User user = userRepository.findById(req.getUserId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
             doc.setUser(user);
+        }
+
+        Doctor updated = doctorRepository.save(doc);
+        return toResponse(updated);
+    }
+
+    @Transactional
+    public DoctorResponse updateDoctorImageUrl(Long id, String imageUrl) {
+        Doctor doc = doctorRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Doctor not found with id: " + id));
+
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            String trimmed = imageUrl.trim();
+            if (!trimmed.matches("^(https?://.*)$")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image URL must start with http:// or https://");
+            }
+            if (trimmed.length() > 500) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image URL cannot exceed 500 characters");
+            }
+            doc.setImageUrl(trimmed);
+        } else {
+            doc.setImageUrl(null);
         }
 
         Doctor updated = doctorRepository.save(doc);
@@ -185,6 +215,7 @@ public class DoctorService {
         response.setSpecialization(doc.getSpecialization());
         response.setQualification(doc.getQualification());
         response.setExperience(doc.getExperience());
+        response.setImageUrl(doc.getImageUrl());
 
         if (doc.getUser() != null) {
             response.setUser_id(doc.getUser().getId());

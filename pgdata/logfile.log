@@ -27,3 +27,9 @@
 2026-11-06 18:39:01.312 IST [24948] LOG:  checkpoint starting: end-of-recovery immediate wait
 2026-11-06 18:39:01.346 IST [24948] LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.006 s, sync=0.003 s, total=0.039 s; sync files=2, longest=0.002 s, average=0.002 s; distance=0 kB, estimate=0 kB; lsn=0/17F1330, redo lsn=0/17F1330
 2026-11-06 18:39:01.362 IST [21444] LOG:  database system is ready to accept connections
+2026-11-10 11:36:09.135 IST [18924] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit
+2026-11-10 11:36:09.137 IST [18924] LOG:  listening on IPv4 address "127.0.0.1", port 54321
+2026-11-10 11:36:09.518 IST [26492] LOG:  database system was interrupted; last known up at 2026-11-06 18:39:01 IST
+2026-11-10 11:36:16.235 IST [26492] LOG:  could not open file "./logfile.log": sharing violation
+2026-11-10 11:36:16.235 IST [26492] DETAIL:  Continuing to retry for 30 seconds.
+2026-11-10 11:36:16.235 IST [26492] HINT:  You might have antivirus, backup, or similar software interfering with the database system.

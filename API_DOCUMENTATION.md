@@ -504,6 +504,8 @@ Public access for read operations; modifications require staff roles.
     "specialization": "Cardiology",
     "qualification": "MBBS, MD (Cardiology)",
     "experience": 12,
+    "imageUrl": "https://hospital.com/images/doctors/sarah.jpg",
+    "image_url": "https://hospital.com/images/doctors/sarah.jpg",
     "department_id": 2,
     "department_name": "CARDIOLOGY",
     "user_id": 5,
@@ -548,6 +550,7 @@ Public access for read operations; modifications require staff roles.
   "specialization": "Neurology",
   "qualification": "MBBS, DM (Neurology)",
   "experience": 8,
+  "imageUrl": "https://hospital.com/images/doctors/robert.jpg",
   "departmentId": 3,
   "userId": 6
 }
@@ -567,6 +570,7 @@ Public access for read operations; modifications require staff roles.
   "specialization": "Neurology & Neurosurgery",
   "qualification": "MBBS, DM (Neurology), Fellowship",
   "experience": 9,
+  "imageUrl": "https://hospital.com/images/doctors/robert_v2.jpg",
   "departmentId": 3
 }
 ```
@@ -574,7 +578,21 @@ Public access for read operations; modifications require staff roles.
 
 ---
 
-### 6.7 Delete Doctor Profile
+### 6.7 Update Doctor Image URL
+* **Method**: `PATCH`
+* **Path**: `/api/doctors/{id}/image`
+* **Access**: `ADMIN`, `RECEPTION`
+* **Request Body**:
+```json
+{
+  "imageUrl": "https://hospital.com/images/doctors/robert_new.jpg"
+}
+```
+* **Response `200 OK`**: Updated doctor object.
+
+---
+
+### 6.8 Delete Doctor Profile
 * **Method**: `DELETE`
 * **Path**: `/api/doctors/{id}`
 * **Access**: `ADMIN`

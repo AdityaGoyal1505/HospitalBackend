@@ -17,6 +17,7 @@ This document provides a comprehensive log of all architectural fixes, bug resol
     * `specialization` (`String`, not null)
     * `qualification` (`String`)
     * `experience` (`Integer` in years)
+    * imageUrl (String, max 500 characters, mapped to column image_url)
   * Retained optional lazy associations to `Department` and `User` for authentication and hospital directory linkage.
   * Added database indexes on `name` and `specialization` for high-performance querying.
 
@@ -46,6 +47,7 @@ This document provides a comprehensive log of all architectural fixes, bug resol
   * Added `GET /api/doctors?name=...&specialization=...` (Combined multi-field filtering).
 * **Update (U)**: Added `PUT /api/doctors/{id}` using `UpdateDoctorRequest`.
 * **Delete (D)**: Added `DELETE /api/doctors/{id}` (Admin only).
+* **Image URL Integration**: Supported imageUrl and image_url across CreateDoctorRequest, UpdateDoctorRequest, and DoctorResponse. Added dedicated PATCH /api/doctors/{id}/image endpoint and service method DoctorService.updateDoctorImageUrl with protocol and length validation.
 
 ### 2.2 Appointment Module (`/api/appointments`)
 * **Doctor View**: Added `GET /api/appointments/doctor/my` allowing doctors to view their schedule.

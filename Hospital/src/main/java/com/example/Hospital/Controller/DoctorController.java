@@ -61,6 +61,19 @@ public class DoctorController {
         return doctorService.updateDoctor(id, request);
     }
 
+    // Update doctor image URL
+    @PatchMapping("/{id}/image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
+    public DoctorResponse updateDoctorImageUrl(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String imageUrl = null;
+        if (body != null) {
+            imageUrl = body.containsKey("imageUrl") ? body.get("imageUrl") : body.get("image_url");
+        }
+        return doctorService.updateDoctorImageUrl(id, imageUrl);
+    }
+
     // Delete by ID
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

@@ -34,6 +34,9 @@ public class Doctor {
     @Column
     private Integer experience;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
@@ -47,5 +50,21 @@ public class Doctor {
         this.specialization = specialization;
         this.qualification = qualification;
         this.experience = experience;
+    }
+
+    public Doctor(String name, String specialization, String qualification, Integer experience, String imageUrl) {
+        this.name = name;
+        this.specialization = specialization;
+        this.qualification = qualification;
+        this.experience = experience;
+        this.imageUrl = imageUrl;
+    }
+
+    public String getImage_url() {
+        return imageUrl;
+    }
+
+    public void setImage_url(String image_url) {
+        this.imageUrl = image_url;
     }
 }

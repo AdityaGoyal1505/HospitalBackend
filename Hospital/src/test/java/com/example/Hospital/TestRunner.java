@@ -19,8 +19,8 @@ public class TestRunner {
         System.out.println("Running Test Suites");
         System.out.println("==================================================");
 
-        // 1. Run Unit Tests (PackageServiceTest & PackageEnquiryServiceTest)
-        Class<?>[] unitTestClasses = {PackageServiceTest.class, PackageEnquiryServiceTest.class};
+        // 1. Run Unit Tests (PackageServiceTest, PackageEnquiryServiceTest & DoctorServiceTest)
+        Class<?>[] unitTestClasses = {PackageServiceTest.class, PackageEnquiryServiceTest.class, DoctorServiceTest.class};
         for (Class<?> clazz : unitTestClasses) {
             System.out.println("\n--- Running Unit Test: " + clazz.getSimpleName() + " ---");
             for (Method m : clazz.getDeclaredMethods()) {
