@@ -68,15 +68,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/hospital-services/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctors/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/packages/**").permitAll()
-                        // Pharmacy / Medicine / Orders / Documents / Devices / Notifications / FAQs / Enquiries
-                        .requestMatchers("/api/medicines/**").permitAll()
-                        .requestMatchers("/api/medicine-orders/**").permitAll()
-                        .requestMatchers("/api/devices/**").permitAll()
-                        .requestMatchers("/api/patients/**").permitAll()
-                        .requestMatchers("/api/documents/**").permitAll()
-                        .requestMatchers("/api/notifications/**").permitAll()
-                        .requestMatchers("/api/faqs/**").permitAll()
-                        .requestMatchers("/api/enquiries/**").permitAll()
+                        // Medicines: the catalogue is public, staff-only things come first
+                        .requestMatchers(HttpMethod.GET, "/api/medicines/admin", "/api/medicines/low-stock").hasAnyRole("ADMIN", "RECEPTION")
+                        .requestMatchers(HttpMethod.GET, "/api/medicines", "/api/medicines/{id}").permitAll()
+                        .requestMatchers("/api/medicines/**").hasAnyRole("ADMIN", "RECEPTION")
+                        // Orders, documents, notifications, devices: a login is needed (owner checks come in the next step)
+                        .requestMatchers("/api/medicine-orders/**").authenticated()
+                        .requestMatchers("/api/patients/**").authenticated()
+                        .requestMatchers("/api/documents/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/devices/**").authenticated()
+                        // FAQs: reading is public, managing is for admins only
+                        .requestMatchers(HttpMethod.GET, "/api/faqs").permitAll()
+                        .requestMatchers("/api/faqs/**").hasRole("ADMIN")
+                        // Enquiries: anyone can send one, staff manage them
+                        .requestMatchers(HttpMethod.POST, "/api/enquiries").permitAll()
+                        .requestMatchers("/api/enquiries/**").hasAnyRole("ADMIN", "RECEPTION")
                         // Protected APIs
                         .requestMatchers("/api/packages/**").hasAnyRole("ADMIN", "RECEPTION")
                         .requestMatchers("/api/package-enquiries/**").authenticated()

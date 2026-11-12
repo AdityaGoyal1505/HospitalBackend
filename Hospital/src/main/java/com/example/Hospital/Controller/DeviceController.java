@@ -7,11 +7,13 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/devices")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class DeviceController {
 
     private final DeviceService deviceService;

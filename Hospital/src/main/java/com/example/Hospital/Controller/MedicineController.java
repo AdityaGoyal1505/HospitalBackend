@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +23,7 @@ public class MedicineController {
     private final MedicineService medicineService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<MedicineResponseDTO> addMedicine(@Valid @RequestBody MedicineRequestDTO request) {
         MedicineResponseDTO created = medicineService.addMedicine(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -40,23 +42,27 @@ public class MedicineController {
     }
 
     @GetMapping("/admin/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<MedicineResponseDTO> getByIdForStaff(@PathVariable Long id) {
         return ResponseEntity.ok(medicineService.getByIdForStaff(id));
     }
 
     @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<Page<MedicineResponseDTO>> getAllForStaff(
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(medicineService.getAllForStaff(pageable));
     }
 
     @GetMapping("/low-stock")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<Page<MedicineResponseDTO>> getLowStock(
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(medicineService.getLowStockMedicines(pageable));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<MedicineResponseDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody MedicineRequestDTO request) {
@@ -64,6 +70,7 @@ public class MedicineController {
     }
 
     @PatchMapping("/{id}/price")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<MedicineResponseDTO> updatePrice(
             @PathVariable Long id,
             @RequestParam BigDecimal price) {
@@ -71,6 +78,7 @@ public class MedicineController {
     }
 
     @PatchMapping("/{id}/stock")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<MedicineResponseDTO> updateStock(
             @PathVariable Long id,
             @Valid @RequestBody StockUpdateRequestDTO request) {
@@ -78,18 +86,21 @@ public class MedicineController {
     }
 
     @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<Void> deactivate(@PathVariable Long id) {
         medicineService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<Void> activate(@PathVariable Long id) {
         medicineService.activate(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTION')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         medicineService.delete(id);
         return ResponseEntity.noContent().build();
