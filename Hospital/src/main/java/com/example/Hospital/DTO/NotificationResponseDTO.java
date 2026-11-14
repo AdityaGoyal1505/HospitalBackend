@@ -1,4 +1,4 @@
-package com.example.Hospital.dto;
+package com.example.Hospital.DTO;
 
 import com.example.Hospital.model.enums.NotificationType;
 import java.time.Instant;

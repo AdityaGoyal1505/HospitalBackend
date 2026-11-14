@@ -1,8 +1,8 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
 import com.example.Hospital.exception.ResourceNotFoundException;
 import com.example.Hospital.exception.StorageException;
-import com.example.Hospital.service.FileStorageService;
+import com.example.Hospital.Service.FileStorageService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;

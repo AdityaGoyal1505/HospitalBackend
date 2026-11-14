@@ -1,16 +1,18 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
 import static com.example.Hospital.model.enums.EnquiryStatus.*;
 
-import com.example.Hospital.dto.EnquiryRequestDTO;
-import com.example.Hospital.dto.EnquiryResponseDTO;
-import com.example.Hospital.dto.EnquiryStatusUpdateRequestDTO;
+import com.example.Hospital.DTO.EnquiryRequestDTO;
+import com.example.Hospital.DTO.EnquiryResponseDTO;
+import com.example.Hospital.DTO.EnquiryStatusUpdateRequestDTO;
+import com.example.Hospital.Repository.UserRepository;
 import com.example.Hospital.model.Enquiry;
+import com.example.Hospital.model.User;
 import com.example.Hospital.model.enums.EnquiryStatus;
 import com.example.Hospital.model.enums.EnquiryType;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.EnquiryRepository;
-import com.example.Hospital.service.EnquiryService;
+import com.example.Hospital.Repository.EnquiryRepository;
+import com.example.Hospital.Service.EnquiryService;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
@@ -32,6 +34,7 @@ public class EnquiryServiceImpl implements EnquiryService {
             CLOSED, Set.of());
 
     private final EnquiryRepository enquiryRepository;
+    private final UserRepository userRepository;
 
     private EnquiryResponseDTO toResponse(Enquiry enquiry) {
         EnquiryResponseDTO dto = new EnquiryResponseDTO();
@@ -63,17 +66,37 @@ public class EnquiryServiceImpl implements EnquiryService {
 
     @Override
     @Transactional
-    public EnquiryResponseDTO create(EnquiryRequestDTO request) {
+    public EnquiryResponseDTO create(Long userId, EnquiryRequestDTO request) {
         if (request.getEnquiryType() == EnquiryType.INTERNATIONAL
                 && clean(request.getCountry()) == null) {
             throw new IllegalArgumentException("Country is required for international enquiries");
         }
 
+        // A visitor: the typed details are used.
+        Long patientId = null;
+        String name = request.getPatientName().trim();
+        String email = request.getPatientEmail().trim().toLowerCase(Locale.ROOT);
+        String phone = clean(request.getPatientPhone());
+
+        // A logged-in user: the details come from their account, not from what was typed.
+        if (userId != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            patientId = user.getId();
+            name = user.getName();
+            if (clean(user.getEmail()) != null) {
+                email = user.getEmail().trim().toLowerCase(Locale.ROOT);
+            }
+            if (clean(user.getPhone()) != null) {
+                phone = user.getPhone().trim();
+            }
+        }
+
         Enquiry enquiry = new Enquiry();
-        enquiry.setPatientId(request.getPatientId());
-        enquiry.setPatientName(request.getPatientName().trim());
-        enquiry.setPatientEmail(request.getPatientEmail().trim().toLowerCase(Locale.ROOT));
-        enquiry.setPatientPhone(clean(request.getPatientPhone()));
+        enquiry.setPatientId(patientId);
+        enquiry.setPatientName(name);
+        enquiry.setPatientEmail(email);
+        enquiry.setPatientPhone(phone);
         enquiry.setCountry(clean(request.getCountry()));
         enquiry.setEnquiryType(request.getEnquiryType());
         enquiry.setMessage(request.getMessage().trim());

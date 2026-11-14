@@ -1,37 +1,39 @@
-package com.example.Hospital.controller;
+package com.example.Hospital.Controller;
 
-import com.example.Hospital.dto.DeviceRegisterRequestDTO;
-import com.example.Hospital.dto.DeviceResponseDTO;
-import com.example.Hospital.service.DeviceService;
+import com.example.Hospital.Config.CurrentUser;
+import com.example.Hospital.DTO.DeviceRegisterRequestDTO;
+import com.example.Hospital.DTO.DeviceResponseDTO;
+import com.example.Hospital.Service.DeviceService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/devices")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
 public class DeviceController {
 
     private final DeviceService deviceService;
 
+    // The user always comes from the login token, never from the request.
+
     @PostMapping("/register")
     public ResponseEntity<DeviceResponseDTO> register(
             @Valid @RequestBody DeviceRegisterRequestDTO request) {
-        return ResponseEntity.ok(deviceService.register(request));
+        return ResponseEntity.ok(deviceService.register(CurrentUser.id(), request));
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<DeviceResponseDTO>> getDevicesByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(deviceService.getDevicesByUser(userId));
+    // My own phones.
+    @GetMapping
+    public ResponseEntity<List<DeviceResponseDTO>> myDevices() {
+        return ResponseEntity.ok(deviceService.getDevicesByUser(CurrentUser.id()));
     }
 
     @DeleteMapping("/token/{token}")
     public ResponseEntity<Void> unregister(@PathVariable String token) {
-        deviceService.unregister(token);
+        deviceService.unregister(CurrentUser.id(), token);
         return ResponseEntity.noContent().build();
     }
 }

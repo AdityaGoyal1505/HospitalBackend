@@ -1,14 +1,14 @@
-package com.example.Hospital.service;
+package com.example.Hospital.Service;
 
-import com.example.Hospital.dto.DeviceRegisterRequestDTO;
-import com.example.Hospital.dto.DeviceResponseDTO;
+import com.example.Hospital.DTO.DeviceRegisterRequestDTO;
+import com.example.Hospital.DTO.DeviceResponseDTO;
 import java.util.List;
 
 public interface DeviceService {
 
-    DeviceResponseDTO register(DeviceRegisterRequestDTO request);
+    DeviceResponseDTO register(Long userId, DeviceRegisterRequestDTO request);
 
     List<DeviceResponseDTO> getDevicesByUser(Long userId);
 
-    void unregister(String token);
+    void unregister(Long userId, String token);
 }

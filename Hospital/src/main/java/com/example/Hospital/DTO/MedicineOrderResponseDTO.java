@@ -1,4 +1,4 @@
-package com.example.Hospital.dto;
+package com.example.Hospital.DTO;
 
 import com.example.Hospital.model.OrderItem;
 import com.example.Hospital.model.enums.MedicineOrderStatus;

@@ -1,9 +1,9 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
 import static com.example.Hospital.model.enums.MedicineOrderStatus.*;
 
-import com.example.Hospital.dto.MedicineOrderRequestDTO;
-import com.example.Hospital.dto.OrderItemRequestDTO;
+import com.example.Hospital.DTO.MedicineOrderRequestDTO;
+import com.example.Hospital.DTO.OrderItemRequestDTO;
 import com.example.Hospital.model.Medicine;
 import com.example.Hospital.model.MedicineOrder;
 import com.example.Hospital.model.OrderItem;
@@ -13,10 +13,10 @@ import com.example.Hospital.model.enums.MedicineOrderStatus;
 import com.example.Hospital.model.enums.NotificationType;
 import com.example.Hospital.exception.InvalidOrderStateException;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.MedicineOrderRepository;
-import com.example.Hospital.repository.MedicineRepository;
-import com.example.Hospital.repository.PatientDocumentRepository;
-import com.example.Hospital.service.NotificationService;
+import com.example.Hospital.Repository.MedicineOrderRepository;
+import com.example.Hospital.Repository.MedicineRepository;
+import com.example.Hospital.Repository.PatientDocumentRepository;
+import com.example.Hospital.Service.NotificationService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;

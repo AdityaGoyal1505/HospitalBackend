@@ -1,14 +1,14 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
-import com.example.Hospital.dto.DocumentDownloadDTO;
-import com.example.Hospital.dto.PatientDocumentResponseDTO;
+import com.example.Hospital.DTO.DocumentDownloadDTO;
+import com.example.Hospital.DTO.PatientDocumentResponseDTO;
 import com.example.Hospital.model.PatientDocument;
 import com.example.Hospital.model.enums.DocumentType;
 import com.example.Hospital.exception.ResourceNotFoundException;
 import com.example.Hospital.exception.StorageException;
-import com.example.Hospital.repository.PatientDocumentRepository;
-import com.example.Hospital.service.FileStorageService;
-import com.example.Hospital.service.PatientDocumentService;
+import com.example.Hospital.Repository.PatientDocumentRepository;
+import com.example.Hospital.Service.FileStorageService;
+import com.example.Hospital.Service.PatientDocumentService;
 import java.io.IOException;
 import java.io.InputStream;
 import lombok.RequiredArgsConstructor;

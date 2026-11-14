@@ -1,4 +1,4 @@
-package com.example.Hospital.service;
+package com.example.Hospital.Service;
 
 import com.example.Hospital.model.enums.PushResult;
 

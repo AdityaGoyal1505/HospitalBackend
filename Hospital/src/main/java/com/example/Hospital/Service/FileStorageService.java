@@ -1,4 +1,4 @@
-package com.example.Hospital.service;
+package com.example.Hospital.Service;
 
 import java.io.InputStream;
 import org.springframework.core.io.Resource;

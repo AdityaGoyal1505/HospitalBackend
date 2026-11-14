@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Hospital.iml" filepath="$PROJECT_DIR$/.idea/Hospital.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Hospital/Hospital.iml" filepath="$PROJECT_DIR$/Hospital/Hospital.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/HospitalBackend-clone.iml" filepath="$PROJECT_DIR$/.idea/HospitalBackend-clone.iml" />
     </modules>
   </component>
 </project>

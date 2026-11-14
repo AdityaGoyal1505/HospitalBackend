@@ -1,4 +1,4 @@
-package com.example.Hospital.dto;
+package com.example.Hospital.DTO;
 
 import com.example.Hospital.model.enums.DevicePlatform;
 import java.time.Instant;

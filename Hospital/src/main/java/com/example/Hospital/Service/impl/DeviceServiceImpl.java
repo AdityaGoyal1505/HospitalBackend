@@ -1,11 +1,11 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
-import com.example.Hospital.dto.DeviceRegisterRequestDTO;
-import com.example.Hospital.dto.DeviceResponseDTO;
-import com.example.Hospital.model.DeviceToken;
+import com.example.Hospital.DTO.DeviceRegisterRequestDTO;
+import com.example.Hospital.DTO.DeviceResponseDTO;
+import com.example.Hospital.Repository.DeviceTokenRepository;
+import com.example.Hospital.Service.DeviceService;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.DeviceTokenRepository;
-import com.example.Hospital.service.DeviceService;
+import com.example.Hospital.model.DeviceToken;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -29,21 +29,32 @@ public class DeviceServiceImpl implements DeviceService {
         return dto;
     }
 
+    private static void requirePositive(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("User id must be positive");
+        }
+    }
+
     @Override
     @Transactional
-    public DeviceResponseDTO register(DeviceRegisterRequestDTO request) {
+    public DeviceResponseDTO register(Long userId, DeviceRegisterRequestDTO request) {
+        requirePositive(userId);
+
         String token = request.getToken().trim();
         if (!NO_WHITESPACE.matcher(token).matches()) {
             throw new IllegalArgumentException("Token must not contain spaces");
         }
 
+        // A phone address is saved once. If it already exists, it is updated and moved to
+        // the user who registered it now, so the previous user stops receiving its messages.
         DeviceToken device = deviceTokenRepository.findByToken(token).orElseGet(() -> {
             DeviceToken created = new DeviceToken();
             created.setToken(token);
             return created;
         });
-        device.setUserId(request.getUserId());
+        device.setUserId(userId);
         device.setPlatform(request.getPlatform());
+
 
         return toResponse(deviceTokenRepository.save(device));
     }
@@ -51,9 +62,7 @@ public class DeviceServiceImpl implements DeviceService {
     @Override
     @Transactional(readOnly = true)
     public List<DeviceResponseDTO> getDevicesByUser(Long userId) {
-        if (userId == null || userId <= 0) {
-            throw new IllegalArgumentException("User id must be positive");
-        }
+        requirePositive(userId);
         return deviceTokenRepository.findByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -61,13 +70,16 @@ public class DeviceServiceImpl implements DeviceService {
 
     @Override
     @Transactional
-    public void unregister(String token) {
+    public void unregister(Long userId, String token) {
+        requirePositive(userId);
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("Token is required");
         }
+
+        // Only the owner can remove a phone. Someone else's phone looks like "not found".
         DeviceToken device = deviceTokenRepository.findByToken(token.trim())
+                .filter(d -> userId.equals(d.getUserId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Device token not found"));
         deviceTokenRepository.delete(device);
     }
 }
-

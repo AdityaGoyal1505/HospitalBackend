@@ -1,8 +1,8 @@
-package com.example.Hospital.service;
+package com.example.Hospital.Service;
 
-import com.example.Hospital.dto.FaqRequestDTO;
-import com.example.Hospital.dto.FaqResponseDTO;
-import com.example.Hospital.dto.FaqUpdateRequestDTO;
+import com.example.Hospital.DTO.FaqRequestDTO;
+import com.example.Hospital.DTO.FaqResponseDTO;
+import com.example.Hospital.DTO.FaqUpdateRequestDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

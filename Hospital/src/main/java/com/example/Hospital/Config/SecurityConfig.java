@@ -81,8 +81,11 @@ public class SecurityConfig {
                         // FAQs: reading is public, managing is for admins only
                         .requestMatchers(HttpMethod.GET, "/api/faqs").permitAll()
                         .requestMatchers("/api/faqs/**").hasRole("ADMIN")
-                        // Enquiries: anyone can send one, staff manage them
+                        // Enquiries: anyone can send one, staff manage them,
+                        // and any logged-in user can use the package enquiry calls
                         .requestMatchers(HttpMethod.POST, "/api/enquiries").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/enquiries/package").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/enquiries/my").authenticated()
                         .requestMatchers("/api/enquiries/**").hasAnyRole("ADMIN", "RECEPTION")
                         // Protected APIs
                         .requestMatchers("/api/packages/**").hasAnyRole("ADMIN", "RECEPTION")

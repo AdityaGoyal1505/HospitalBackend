@@ -1,12 +1,12 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
-import com.example.Hospital.dto.MedicineRequestDTO;
-import com.example.Hospital.dto.MedicineResponseDTO;
-import com.example.Hospital.dto.StockUpdateRequestDTO;
+import com.example.Hospital.DTO.MedicineRequestDTO;
+import com.example.Hospital.DTO.MedicineResponseDTO;
+import com.example.Hospital.DTO.StockUpdateRequestDTO;
 import com.example.Hospital.model.Medicine;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.MedicineRepository;
-import com.example.Hospital.service.MedicineService;
+import com.example.Hospital.Repository.MedicineRepository;
+import com.example.Hospital.Service.MedicineService;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

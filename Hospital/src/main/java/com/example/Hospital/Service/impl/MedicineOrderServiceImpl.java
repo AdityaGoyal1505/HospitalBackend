@@ -1,13 +1,13 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
-import com.example.Hospital.dto.MedicineOrderRequestDTO;
-import com.example.Hospital.dto.MedicineOrderResponseDTO;
-import com.example.Hospital.dto.OrderStatusUpdateRequestDTO;
+import com.example.Hospital.DTO.MedicineOrderRequestDTO;
+import com.example.Hospital.DTO.MedicineOrderResponseDTO;
+import com.example.Hospital.DTO.OrderStatusUpdateRequestDTO;
 import com.example.Hospital.model.MedicineOrder;
 import com.example.Hospital.model.enums.MedicineOrderStatus;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.MedicineOrderRepository;
-import com.example.Hospital.service.MedicineOrderService;
+import com.example.Hospital.Repository.MedicineOrderRepository;
+import com.example.Hospital.Service.MedicineOrderService;
 import java.util.Optional;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;

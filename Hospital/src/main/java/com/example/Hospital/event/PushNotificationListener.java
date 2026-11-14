@@ -2,8 +2,8 @@ package com.example.Hospital.event;
 
 import com.example.Hospital.model.DeviceToken;
 import com.example.Hospital.model.enums.PushResult;
-import com.example.Hospital.repository.DeviceTokenRepository;
-import com.example.Hospital.service.PushSender;
+import com.example.Hospital.Repository.DeviceTokenRepository;
+import com.example.Hospital.Service.PushSender;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
 import com.example.Hospital.model.enums.PushResult;
-import com.example.Hospital.service.PushSender;
+import com.example.Hospital.Service.PushSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;

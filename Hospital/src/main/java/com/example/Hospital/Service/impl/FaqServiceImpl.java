@@ -1,12 +1,12 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
-import com.example.Hospital.dto.FaqRequestDTO;
-import com.example.Hospital.dto.FaqResponseDTO;
-import com.example.Hospital.dto.FaqUpdateRequestDTO;
+import com.example.Hospital.DTO.FaqRequestDTO;
+import com.example.Hospital.DTO.FaqResponseDTO;
+import com.example.Hospital.DTO.FaqUpdateRequestDTO;
 import com.example.Hospital.model.Faq;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.FaqRepository;
-import com.example.Hospital.service.FaqService;
+import com.example.Hospital.Repository.FaqRepository;
+import com.example.Hospital.Service.FaqService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,8 +1,8 @@
-package com.example.Hospital.service;
+package com.example.Hospital.Service;
 
-import com.example.Hospital.dto.MedicineRequestDTO;
-import com.example.Hospital.dto.MedicineResponseDTO;
-import com.example.Hospital.dto.StockUpdateRequestDTO;
+import com.example.Hospital.DTO.MedicineRequestDTO;
+import com.example.Hospital.DTO.MedicineResponseDTO;
+import com.example.Hospital.DTO.StockUpdateRequestDTO;
 import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

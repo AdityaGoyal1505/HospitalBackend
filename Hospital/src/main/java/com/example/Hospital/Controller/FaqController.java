@@ -1,9 +1,9 @@
 package com.example.Hospital.controller;
 
-import com.example.Hospital.dto.FaqRequestDTO;
-import com.example.Hospital.dto.FaqResponseDTO;
-import com.example.Hospital.dto.FaqUpdateRequestDTO;
-import com.example.Hospital.service.FaqService;
+import com.example.Hospital.DTO.FaqRequestDTO;
+import com.example.Hospital.DTO.FaqResponseDTO;
+import com.example.Hospital.DTO.FaqUpdateRequestDTO;
+import com.example.Hospital.Service.FaqService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

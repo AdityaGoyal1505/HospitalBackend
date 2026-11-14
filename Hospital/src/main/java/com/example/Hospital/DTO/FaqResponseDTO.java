@@ -1,4 +1,4 @@
-package com.example.Hospital.dto;
+package com.example.Hospital.DTO;
 
 
 import java.time.Instant;

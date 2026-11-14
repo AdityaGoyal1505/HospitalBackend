@@ -1,12 +1,12 @@
-package com.example.Hospital.service.impl;
+package com.example.Hospital.Service.impl;
 
-import com.example.Hospital.dto.NotificationResponseDTO;
+import com.example.Hospital.DTO.NotificationResponseDTO;
 import com.example.Hospital.model.Notification;
 import com.example.Hospital.model.enums.NotificationType;
 import com.example.Hospital.event.NotificationCreatedEvent;
 import com.example.Hospital.exception.ResourceNotFoundException;
-import com.example.Hospital.repository.NotificationRepository;
-import com.example.Hospital.service.NotificationService;
+import com.example.Hospital.Repository.NotificationRepository;
+import com.example.Hospital.Service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;

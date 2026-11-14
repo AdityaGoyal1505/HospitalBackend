@@ -1,4 +1,4 @@
-package com.example.Hospital.dto;
+package com.example.Hospital.DTO;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;

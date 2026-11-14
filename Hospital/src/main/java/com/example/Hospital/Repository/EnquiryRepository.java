@@ -1,4 +1,4 @@
-package com.example.Hospital.repository;
+package com.example.Hospital.Repository;
 
 import com.example.Hospital.model.Enquiry;
 import com.example.Hospital.model.enums.EnquiryStatus;

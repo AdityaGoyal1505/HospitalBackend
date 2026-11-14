@@ -1,8 +1,8 @@
-package com.example.Hospital.service;
+package com.example.Hospital.Service;
 
-import com.example.Hospital.dto.MedicineOrderRequestDTO;
-import com.example.Hospital.dto.MedicineOrderResponseDTO;
-import com.example.Hospital.dto.OrderStatusUpdateRequestDTO;
+import com.example.Hospital.DTO.MedicineOrderRequestDTO;
+import com.example.Hospital.DTO.MedicineOrderResponseDTO;
+import com.example.Hospital.DTO.OrderStatusUpdateRequestDTO;
 import com.example.Hospital.model.enums.MedicineOrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
