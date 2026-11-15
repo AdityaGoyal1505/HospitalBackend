@@ -1,9 +1,12 @@
 package com.example.Hospital.Config;
 
+import com.example.Hospital.Repository.DepartmentRepository;
 import com.example.Hospital.Repository.MedicalPackageRepository;
 import com.example.Hospital.Repository.UserRepository;
+import com.example.Hospital.model.Department;
 import com.example.Hospital.model.MedicalPackage;
 import com.example.Hospital.model.User;
+import com.example.Hospital.model.enums.DepartmentType;
 import com.example.Hospital.model.enums.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +26,7 @@ public class DataInitializer {
     @Bean
     public CommandLineRunner initDefaultUsersAndPackages(UserRepository userRepository,
                                                          MedicalPackageRepository medicalPackageRepository,
+                                                         DepartmentRepository departmentRepository,
                                                          JdbcTemplate jdbcTemplate) {
         return args -> {
             // Ensure departments table name column length is varchar(60) if table already exists
@@ -32,6 +36,18 @@ public class DataInitializer {
             } catch (Exception e) {
                 log.debug("Note on departments column update: {}", e.getMessage());
             }
+
+            // Seed Initial Departments
+            for (DepartmentType type : DepartmentType.values()) {
+                if (!departmentRepository.existsByName(type)) {
+                    Department department = new Department();
+                    department.setName(type);
+                    department.setActive(true);
+                    departmentRepository.save(department);
+                }
+            }
+            log.info("Department initialization completed. Total departments: {}",
+                    departmentRepository.count());
 
             // Seed Admin
             boolean adminExists = userRepository.findAll().stream()
