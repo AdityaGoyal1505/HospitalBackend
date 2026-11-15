@@ -14,6 +14,7 @@ import com.example.Hospital.model.DoctorSchedule;
 import com.example.Hospital.model.HospitalService;
 import com.example.Hospital.model.User;
 import com.example.Hospital.model.enums.AppointmentStatus;
+import com.example.Hospital.model.enums.AppointmentType;
 import com.example.Hospital.model.enums.UserRole;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -36,6 +37,7 @@ public class AppointmentService {
     private static final Duration COOLDOWN = Duration.ofMinutes(15);
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("Asia/Kolkata");
     private static final Set<AppointmentStatus> BLOCKING_STATUSES = Set.of(AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED);
+    private static final int DEFAULT_MAX_SERVICE_CONCURRENT_CAPACITY = 5;
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorScheduleRepository scheduleRepository;
@@ -54,8 +56,15 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
-        if (request.getDoctorId() == null || request.getPreferredAt() == null || request.getType() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Doctor, appointment time, and appointment type are required");
+        if (request.getPreferredAt() == null || request.getType() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment time and type are required");
+        }
+        boolean doctorVisit = request.getType() == AppointmentType.DOCTOR;
+        if (doctorVisit && request.getDoctorId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Doctor must be selected");
+        }
+        if (!doctorVisit && request.getServiceId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please choose a test or treatment");
         }
 
         Instant startAt = request.getPreferredAt();
@@ -67,15 +76,18 @@ public class AppointmentService {
         ZoneId zone = resolveZone(request.getPatientTimeZone());
         User patient = getAuthenticatedPatient();
 
-        User doctor = userRepository.findById(request.getDoctorId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Selected doctor not found"));
+        User doctor = null;
+        if (request.getDoctorId() != null) {
+            doctor = userRepository.findById(request.getDoctorId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Selected doctor not found"));
 
-        if (doctor.getRole() != UserRole.DOCTOR) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected user is not a doctor");
-        }
+            if (doctor.getRole() != UserRole.DOCTOR) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected user is not a doctor");
+            }
 
-        if (!doctor.isActive()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected doctor is inactive");
+            if (!doctor.isActive()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected doctor is inactive");
+            }
         }
 
         HospitalService selectedService = null;
@@ -99,39 +111,57 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select a valid appointment time slot");
         }
 
-        List<DoctorSchedule> schedules = scheduleRepository
-                .findByDoctor_IdAndDayOfWeekAndActiveTrue(doctor.getId(), dayOfWeek);
-
-        boolean scheduleMatches = false;
-        for (DoctorSchedule schedule : schedules) {
-            if (!isScheduleValidOnDate(schedule, appointmentDate)) {
-                continue;
-            }
-
-            if (appointmentStart.isBefore(schedule.getStartTime())) {
-                continue;
-            }
-
-            LocalTime requiredEnd = appointmentStart.plusMinutes(30);
-            if (requiredEnd.isAfter(schedule.getEndTime())) {
-                continue;
-            }
-
-            long minutesFromScheduleStart = ChronoUnit.MINUTES.between(schedule.getStartTime(), appointmentStart);
-            if (minutesFromScheduleStart < 0 || minutesFromScheduleStart % 30 != 0) {
-                continue;
-            }
-
-            scheduleMatches = true;
-            break;
+        // Prevent patient from double-booking themselves across simultaneous appointments
+        boolean patientConflict = appointmentRepository.findByPatient_IdAndStatusIn(patient.getId(), BLOCKING_STATUSES)
+                .stream()
+                .anyMatch(a -> a.getStartAt().isBefore(endAt) && a.getEndAt().isAfter(startAt));
+        if (patientConflict) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have another appointment booked during this time window");
         }
 
-        if (!scheduleMatches) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Selected time is outside the doctor's available schedule");
-        }
+        if (doctor != null) {
+            List<DoctorSchedule> schedules = scheduleRepository
+                    .findByDoctor_IdAndDayOfWeekAndActiveTrue(doctor.getId(), dayOfWeek);
 
-        if (hasConflict(doctor.getId(), startAt)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Selected doctor already has an appointment or cooldown at this time");
+            boolean scheduleMatches = false;
+            for (DoctorSchedule schedule : schedules) {
+                if (!isScheduleValidOnDate(schedule, appointmentDate)) {
+                    continue;
+                }
+
+                if (appointmentStart.isBefore(schedule.getStartTime())) {
+                    continue;
+                }
+
+                LocalTime requiredEnd = appointmentStart.plusMinutes(30);
+                if (requiredEnd.isAfter(schedule.getEndTime())) {
+                    continue;
+                }
+
+                long minutesFromScheduleStart = ChronoUnit.MINUTES.between(schedule.getStartTime(), appointmentStart);
+                if (minutesFromScheduleStart < 0 || minutesFromScheduleStart % 30 != 0) {
+                    continue;
+                }
+
+                scheduleMatches = true;
+                break;
+            }
+
+            if (!scheduleMatches) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Selected time is outside the doctor's available schedule");
+            }
+
+            if (hasConflict(doctor.getId(), startAt)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Selected doctor already has an appointment or cooldown at this time");
+            }
+        } else if (selectedService != null) {
+            // Lab / Service slot capacity check: avoids unbounded double-booking when doctor is not involved
+            long currentBookings = appointmentRepository.countByService_IdAndStatusInAndStartAtLessThanAndEndAtGreaterThan(
+                    selectedService.getId(), BLOCKING_STATUSES, endAt, startAt);
+            if (currentBookings >= DEFAULT_MAX_SERVICE_CONCURRENT_CAPACITY) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Selected time slot has reached maximum capacity for this test or treatment");
+            }
         }
 
         Appointment appointment = new Appointment();
@@ -220,6 +250,9 @@ public class AppointmentService {
         }
 
         if (request.getType() != null) {
+            if (request.getType() == AppointmentType.DOCTOR && appointment.getDoctor() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Doctor appointment requires an assigned doctor");
+            }
             appointment.setType(request.getType());
         }
 
@@ -405,8 +438,7 @@ public class AppointmentService {
 
         DayOfWeek dayOfWeek = date.getDayOfWeek();
 
-        // FIX: Load active schedules for day of week and filter in-memory with isScheduleValidOnDate.
-        // This avoids SQL NULL comparison failure for ongoing/permanent schedules with validFrom or validUntil null.
+        // Load active schedules for day of week and filter in-memory with isScheduleValidOnDate
         List<DoctorSchedule> schedules = scheduleRepository
                 .findByDoctor_IdAndDayOfWeekAndActiveTrue(doctorId, dayOfWeek);
 

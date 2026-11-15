@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,8 +22,17 @@ public class DataInitializer {
 
     @Bean
     public CommandLineRunner initDefaultUsersAndPackages(UserRepository userRepository,
-                                                         MedicalPackageRepository medicalPackageRepository) {
+                                                         MedicalPackageRepository medicalPackageRepository,
+                                                         JdbcTemplate jdbcTemplate) {
         return args -> {
+            // Ensure departments table name column length is varchar(60) if table already exists
+            try {
+                jdbcTemplate.execute("ALTER TABLE IF EXISTS departments ALTER COLUMN name TYPE varchar(60)");
+                log.info("Successfully executed: ALTER TABLE IF EXISTS departments ALTER COLUMN name TYPE varchar(60)");
+            } catch (Exception e) {
+                log.debug("Note on departments column update: {}", e.getMessage());
+            }
+
             // Seed Admin
             boolean adminExists = userRepository.findAll().stream()
                     .anyMatch(u -> u.getRole() == UserRole.ADMIN);

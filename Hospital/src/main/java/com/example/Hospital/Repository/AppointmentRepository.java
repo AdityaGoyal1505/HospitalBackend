@@ -1,4 +1,3 @@
-
 package com.example.Hospital.Repository;
 
 import com.example.Hospital.model.Appointment;
@@ -34,4 +33,11 @@ public interface AppointmentRepository
     );
 
     List<Appointment> findByPatient_IdAndStatusIn(Long patientId, Collection<AppointmentStatus> statuses);
+
+    long countByService_IdAndStatusInAndStartAtLessThanAndEndAtGreaterThan(
+            Long serviceId,
+            Collection<AppointmentStatus> statuses,
+            Instant requestedEnd,
+            Instant requestedStart
+    );
 }

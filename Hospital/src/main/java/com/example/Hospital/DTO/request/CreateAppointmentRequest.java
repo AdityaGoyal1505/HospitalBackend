@@ -1,4 +1,3 @@
-
 package com.example.Hospital.DTO.request;
 
 import com.example.Hospital.model.enums.AppointmentType;
@@ -16,7 +15,6 @@ import java.time.Instant;
 @Setter
 public class CreateAppointmentRequest {
 
-    @NotNull(message = "Doctor must be selected")
     @Positive(message = "Doctor ID must be positive")
     private Long doctorId;
 
