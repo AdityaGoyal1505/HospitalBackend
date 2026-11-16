@@ -118,3 +118,32 @@ This document provides a comprehensive log of all architectural fixes, bug resol
 ### 4.3 Environment & Build Settings
 * **Fix**: Adjusted `<java.version>` in `pom.xml` from `25` to the installed LTS `21`.
 * **Fix**: Corrected package declaration of `CreateDoctorRequest.java` from `DTO.response` to `DTO.request`.
+
+---
+
+## 5. Department Column Expansion, Non-Doctor Appointments & Production Configuration
+
+### 5.1 Department Enum Length Expansion & Auto-Seeding
+* **Problem**: Six of the twelve `DepartmentType` enum names (e.g. `GENERAL_MEDICINE_AND_GENERAL_PHYSICIAN_SERVICES`) exceed 20 characters (up to 47 characters). The database column was constrained to `varchar(20)`. Additionally, departments were not seeded during system boot.
+* **Fix**:
+  * Updated `@Column(length = 60)` in `Department.java`.
+  * Added `ALTER TABLE IF EXISTS departments ALTER COLUMN name TYPE varchar(60)` in `DataInitializer.java` to automatically migrate existing PostgreSQL tables upon startup.
+  * Added automated seeding in `DataInitializer.java` to ensure all 12 `DepartmentType` values exist without modifying or duplicating existing records.
+  * Added `schema-update-department.sql` for manual DBA execution.
+
+### 5.2 Appointments Without Doctor (Tests & Treatments)
+* **Problem**: While `Appointment.java` allowed null `doctor`, `CreateAppointmentRequest` enforced `@NotNull` on `doctorId`, preventing patients from booking lab tests or treatments directly without doctor selection.
+* **Fix**:
+  * Removed `@NotNull` from `CreateAppointmentRequest.doctorId` (retained `@Positive`).
+  * Updated `AppointmentService.createAppointment`:
+    * When `type == DOCTOR`: `doctorId` is mandatory; doctor schedule and cooldown conflict checks execute.
+    * When `type == TEST` or `type == TREATMENT`: `serviceId` is mandatory; `doctorId` is optional.
+    * Added lab slot capacity check (`DEFAULT_MAX_SERVICE_CONCURRENT_CAPACITY = 5`) to prevent uncontrolled slot flooding.
+    * Added patient anti-double-booking guard to prevent simultaneous conflicting appointments.
+
+### 5.3 Production-Ready Environment Configuration
+* **Problem**: `application.properties` contained hardcoded ports, plaintext passwords, `show-sql=true`, and verbose `DEBUG` security logging.
+* **Fix**:
+  * Externalized all values using Spring Boot environment variable placeholders with development fallbacks.
+  * Added HikariCP connection pool production tuning.
+  * Created `.env.example` template covering server, database, JWT/HMAC secrets, and Meta WhatsApp Cloud API credentials.

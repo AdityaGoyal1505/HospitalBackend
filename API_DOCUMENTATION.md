@@ -29,6 +29,7 @@
 21. [Package Enquiry & Reception REST Integration Flow](#21-package-enquiry--reception-rest-integration-flow)
 22. [Pharmacy, Prescription & Order Fulfillment Flow](#22-pharmacy-prescription--order-fulfillment-flow)
 23. [Standard Error Formats](#23-standard-error-formats)
+24. [Production Environment Configuration & Deployment](#24-production-environment-configuration--deployment)
 
 ---
 
@@ -229,17 +230,18 @@ Verify profile completion:
    * `GET /api/appointments/doctors/5/availability?date=2026-11-02&timeZone=Asia/Kolkata`
 3. **Confirm Booking**:
    * `POST /api/appointments`
-   * Request Body:
+   * Request Body (Doctor Appointment):
      ```json
      {
        "doctorId": 5,
        "serviceId": 1,
-       "type": "CONSULTATION",
+       "type": "DOCTOR",
        "preferredAt": "2026-11-02T03:30:00Z",
        "patientTimeZone": "Asia/Kolkata",
        "reason": "Initial heart health evaluation"
      }
      ```
+   * *(Note: For non-doctor appointments such as lab tests and treatments, `type` must be `"TEST"` or `"TREATMENT"`, `serviceId` is required, and `doctorId` may be omitted/null. Hospital staff assigns a doctor later if necessary).*
 4. **Display Confirmation Screen**: Show confirmed appointment details from the `AppointmentResponse`.
 
 ---
@@ -582,12 +584,13 @@ Public access for read operations; modifications require staff roles.
 * **Method**: `PATCH`
 * **Path**: `/api/doctors/{id}/image`
 * **Access**: `ADMIN`, `RECEPTION`
-* **Request Body**:
+* **Request Body**: Accepts either camelCase (`imageUrl`) or snake_case (`image_url`):
 ```json
 {
   "imageUrl": "https://hospital.com/images/doctors/robert_new.jpg"
 }
 ```
+* *(Alternatively: `{"image_url": "https://hospital.com/images/doctors/robert_new.jpg"}`). Pass empty/null to remove the image.*
 * **Response `200 OK`**: Updated doctor object.
 
 ---
@@ -602,6 +605,26 @@ Public access for read operations; modifications require staff roles.
 
 ## 7. Departments Endpoints
 
+> **Note on Department Enums & Capacity**:
+> Department names are strictly bound to the `DepartmentType` enum. The database column length is configured to `varchar(60)` to comfortably support long enum identifiers (e.g., `GENERAL_MEDICINE_AND_GENERAL_PHYSICIAN_SERVICES` at 47 characters).
+> 
+> **Standard Predefined Department Types (12 Total)**:
+> 1. `OBSTETRICS_AND_GYNAECOLOGY`
+> 2. `FETAL_MEDICINE`
+> 3. `PAEDIATRICS`
+> 4. `DERMATOLOGY_AND_COSMETOLOGY`
+> 5. `ORTHOPAEDICS`
+> 6. `UROLOGY`
+> 7. `PLASTIC_SURGERY`
+> 8. `RESPIRATORY_DISEASES_AND_PULMONOLOGY`
+> 9. `GENERAL_MEDICINE_AND_GENERAL_PHYSICIAN_SERVICES`
+> 10. `GASTROENTEROLOGY`
+> 11. `LAPAROSCOPIC_AND_MINIMAL_ACCESS_SURGERY`
+> 12. `EMERGENCY_AND_TRAUMA_CARE`
+>
+> **Automatic System Bootstrapping**:
+> On application startup, `DataInitializer.java` automatically checks the database and seeds any missing departments from the 12 enum values without modifying existing active/inactive statuses or creating duplicates.
+
 ### 7.1 List Departments
 * **Method**: `GET`
 * **Path**: `/api/departments`
@@ -612,9 +635,16 @@ Public access for read operations; modifications require staff roles.
 [
   {
     "id": 1,
-    "name": "CARDIOLOGY",
-    "description": "Comprehensive cardiac diagnostics and treatment",
-    "imageUrl": "https://example.com/cardiology.jpg",
+    "name": "GENERAL_MEDICINE_AND_GENERAL_PHYSICIAN_SERVICES",
+    "description": "Comprehensive primary care, health checkups, and chronic disease management",
+    "imageUrl": "https://example.com/general_medicine.jpg",
+    "active": true
+  },
+  {
+    "id": 2,
+    "name": "DERMATOLOGY_AND_COSMETOLOGY",
+    "description": "Skin health, allergy management, and clinical cosmetic procedures",
+    "imageUrl": "https://example.com/dermatology.jpg",
     "active": true
   }
 ]
@@ -637,9 +667,9 @@ Public access for read operations; modifications require staff roles.
 * **Request Body**:
 ```json
 {
-  "name": "CARDIOLOGY",
-  "description": "Comprehensive cardiac diagnostics and treatment",
-  "imageUrl": "https://example.com/cardiology.jpg"
+  "name": "GENERAL_MEDICINE_AND_GENERAL_PHYSICIAN_SERVICES",
+  "description": "Comprehensive primary care and physician consultations",
+  "imageUrl": "https://example.com/general_medicine.jpg"
 }
 ```
 * **Response `201 Created`**: Created department object.
@@ -677,7 +707,7 @@ Public access for read operations; modifications require staff roles.
 * **Method**: `GET`
 * **Path**: `/api/hospital-services`
 * **Query Parameters** (optional):
-  * `type`: enum (`CONSULTATION`, `LAB_TEST`, `IMAGING`, `PROCEDURE`)
+  * `type`: enum (`TREATMENT`, `TEST`, `OTHER`)
   * `departmentId`: number
   * `activeOnly`: boolean (default `true`)
 * **Access**: Public
@@ -686,12 +716,22 @@ Public access for read operations; modifications require staff roles.
 [
   {
     "id": 1,
-    "name": "General Cardiology Consultation",
-    "type": "CONSULTATION",
-    "description": "Initial cardiac check and ECG review",
-    "price": 1200.00,
+    "name": "Complete Blood Count (CBC)",
+    "type": "TEST",
+    "description": "Comprehensive automated hematology panel",
+    "price": 450.00,
     "departmentId": 1,
-    "departmentName": "CARDIOLOGY",
+    "departmentName": "GENERAL_MEDICINE_AND_GENERAL_PHYSICIAN_SERVICES",
+    "active": true
+  },
+  {
+    "id": 2,
+    "name": "Physiotherapy Rehabilitation Session",
+    "type": "TREATMENT",
+    "description": "Targeted musculoskeletal therapy and mobility rehabilitation",
+    "price": 850.00,
+    "departmentId": 5,
+    "departmentName": "ORTHOPAEDICS",
     "active": true
   }
 ]
@@ -870,12 +910,27 @@ Returns available 15-minute booking slots considering doctor schedules, leave da
 * **Method**: `POST`
 * **Path**: `/api/appointments`
 * **Access**: `PATIENT`
-* **Request Body**:
+
+#### Business Logic & Booking Rules:
+* **Appointment Types**: Supported values are `DOCTOR`, `TEST`, and `TREATMENT`.
+* **Doctor Visit (`type: "DOCTOR"`)**:
+  * `doctorId` is **mandatory** (must be a valid, active doctor ID).
+  * System validates doctor schedule boundaries (`DoctorSchedule`), leave dates, active appointments, and cooldown intervals (15 mins).
+  * `serviceId` is optional.
+* **Tests & Treatments without a Doctor (`type: "TEST"` or `type: "TREATMENT"`)**:
+  * `serviceId` is **mandatory** (specifies the test or treatment service).
+  * `doctorId` is **optional** (`null` allowed). Staff/reception can assign a doctor later as needed.
+  * Doctor schedule and cooldown checks are bypassed.
+  * **Lab Slot Capacity Guard**: Built-in capacity protection (`DEFAULT_MAX_SERVICE_CONCURRENT_CAPACITY = 5`) prevents unlimited double-booking on lab slots.
+* **Patient Anti-Double-Booking Guard**: The system prevents a patient from booking overlapping appointments during the same time window across any appointment type.
+* **Slot Alignment**: The requested appointment timestamp must have zero seconds and zero nanos (`:00`).
+
+#### Request Body - Scenario A: Doctor Visit
 ```json
 {
   "doctorId": 5,
   "serviceId": 1,
-  "type": "CONSULTATION",
+  "type": "DOCTOR",
   "preferredAt": "2026-11-02T03:30:00Z",
   "patientTimeZone": "Asia/Kolkata",
   "reason": "Chest tightness and palpitations",
@@ -883,7 +938,22 @@ Returns available 15-minute booking slots considering doctor schedules, leave da
   "collectionAddress": null
 }
 ```
-* **Response `201 Created`**:
+
+#### Request Body - Scenario B: Lab Test / Treatment (No Doctor Assigned)
+```json
+{
+  "doctorId": null,
+  "serviceId": 1,
+  "type": "TEST",
+  "preferredAt": "2026-11-02T04:00:00Z",
+  "patientTimeZone": "Asia/Kolkata",
+  "reason": "Routine Blood Sugar Fasting Test",
+  "collectionType": "HOME",
+  "collectionAddress": "Flat 4B, Greenview Towers, Park Road"
+}
+```
+
+* **Response `201 Created` (Doctor Visit)**:
 ```json
 {
   "id": 101,
@@ -893,7 +963,7 @@ Returns available 15-minute booking slots considering doctor schedules, leave da
   "doctorName": "Dr. Sarah Jenkins",
   "serviceId": 1,
   "serviceName": "General Cardiology Consultation",
-  "type": "CONSULTATION",
+  "type": "DOCTOR",
   "preferredAt": "2026-11-02T03:30:00Z",
   "startAt": "2026-11-02T03:30:00Z",
   "endAt": "2026-11-02T03:45:00Z",
@@ -905,6 +975,31 @@ Returns available 15-minute booking slots considering doctor schedules, leave da
   "cancellationReason": null,
   "createdAt": "2026-10-29T11:00:00Z",
   "updatedAt": "2026-10-29T11:00:00Z"
+}
+```
+
+* **Response `201 Created` (Lab Test without Doctor)**:
+```json
+{
+  "id": 102,
+  "patientId": 12,
+  "patientName": "Alex Johnson",
+  "doctorId": null,
+  "doctorName": null,
+  "serviceId": 1,
+  "serviceName": "Complete Blood Count (CBC)",
+  "type": "TEST",
+  "preferredAt": "2026-11-02T04:00:00Z",
+  "startAt": "2026-11-02T04:00:00Z",
+  "endAt": "2026-11-02T04:15:00Z",
+  "patientTimeZone": "Asia/Kolkata",
+  "status": "CONFIRMED",
+  "reason": "Routine Blood Sugar Fasting Test",
+  "collectionType": "HOME",
+  "collectionAddress": "Flat 4B, Greenview Towers, Park Road",
+  "cancellationReason": null,
+  "createdAt": "2026-10-29T11:15:00Z",
+  "updatedAt": "2026-10-29T11:15:00Z"
 }
 ```
 
@@ -951,11 +1046,12 @@ Returns available 15-minute booking slots considering doctor schedules, leave da
 ```json
 {
   "preferredAt": "2026-11-02T04:00:00Z",
-  "type": "CONSULTATION",
+  "type": "DOCTOR",
   "serviceId": 1,
   "reason": "Rescheduling due to traffic"
 }
 ```
+* *(Note: When changing appointment type to `DOCTOR`, the appointment must have an assigned doctor. Conflict validation executes automatically if doctor is assigned).*
 * **Response `200 OK`**: Updated appointment object.
 
 ---
@@ -1370,6 +1466,7 @@ General enquiries allow prospective or existing patients to ask general hospital
 ### 15.5 Delete General Enquiry
 * **Method**: `DELETE`
 * **Path**: `/api/enquiries/{id}`
+* **Access**: `ADMIN` only (`hasRole('ADMIN')`)
 * **Response**: `204 No Content`
 
 ---
@@ -1423,28 +1520,37 @@ Manages the hospital pharmacy inventory, medication pricing, prescription requir
 ### 16.4 Admin List All Medicines (Including Inactive)
 * **Method**: `GET`
 * **Path**: `/api/medicines/admin`
+* **Access**: `ADMIN`, `RECEPTION`
 * **Query Parameters**: `page`, `size`, `sort`
 * **Response `200 OK`**: `Page<MedicineResponseDTO>`.
 
-### 16.5 Low Stock Warning List
+---
+
+### 16.5 Get Medicine Details for Staff (Including Inactive)
+* **Method**: `GET`
+* **Path**: `/api/medicines/admin/{id}`
+* **Access**: `ADMIN`, `RECEPTION`
+* **Response `200 OK`**: `MedicineResponseDTO` (accessible even if the medicine is inactive).
+
+### 16.6 Low Stock Warning List
 * **Method**: `GET`
 * **Path**: `/api/medicines/low-stock`
 * **Query Parameters**: `page`, `size`, `sort`
 * **Description**: Returns all medicines with quantity below the threshold (default: `<= 5`).
 * **Response `200 OK`**: `Page<MedicineResponseDTO>`.
 
-### 16.6 Full Update of Medicine
+### 16.7 Full Update of Medicine
 * **Method**: `PUT`
 * **Path**: `/api/medicines/{id}`
 * **Request Body**: Same schema as `POST /api/medicines`.
 * **Response `200 OK`**: Updated `MedicineResponseDTO`.
 
-### 16.7 Update Medicine Price
+### 16.8 Update Medicine Price
 * **Method**: `PATCH`
 * **Path**: `/api/medicines/{id}/price?price=49.99`
 * **Response `200 OK`**: Updated `MedicineResponseDTO`.
 
-### 16.8 Update Medicine Stock
+### 16.9 Update Medicine Stock
 * **Method**: `PATCH`
 * **Path**: `/api/medicines/{id}/stock`
 * **Request Body**:
@@ -1455,13 +1561,13 @@ Manages the hospital pharmacy inventory, medication pricing, prescription requir
 ```
 * **Response `200 OK`**: Updated `MedicineResponseDTO`.
 
-### 16.9 Activate & Deactivate Medicine
+### 16.10 Activate & Deactivate Medicine
 * **Method**: `PATCH`
 * **Paths**:
   * `/api/medicines/{id}/deactivate` -> `204 No Content`
   * `/api/medicines/{id}/activate` -> `204 No Content`
 
-### 16.10 Delete Medicine
+### 16.11 Delete Medicine
 * **Method**: `DELETE`
 * **Path**: `/api/medicines/{id}`
 * **Response**: `204 No Content`
@@ -1561,10 +1667,10 @@ Enables patients to purchase medications online with uploaded prescriptions, del
 ### 17.5 Cancel Order (Automatic Inventory Refund)
 * **Method**: `POST`
 * **Path**: `/api/medicine-orders/{id}/cancel`
+* **Access**: `PATIENT` (authenticated patient cancelling their own order)
 * **Query Parameters**:
-  * `patientId`: The ID of the patient cancelling
   * `reason` (optional): Reason for cancellation
-* **Behavior**: If the order is in `PENDING` or `CONFIRMED` status, sets status to `CANCELLED` and **automatically refunds ordered quantities back to medicine stock**.
+* **Behavior**: Resolves patient identity from JWT bearer token. If the order is in `PENDING` or `UNDER_REVIEW` status, sets status to `CANCELLED` and **automatically refunds ordered quantities back to medicine stock**.
 * **Response `200 OK`**: Updated `MedicineOrderResponseDTO` with status `CANCELLED`.
 
 ---
@@ -1576,11 +1682,12 @@ Secure storage and retrieval for patient medical records, lab reports, doctor pr
 ### 18.1 Upload Patient Document
 * **Method**: `POST`
 * **Path**: `/api/patients/{patientId}/documents`
+* **Access**: Patient owner or Staff (`ADMIN`, `RECEPTION`)
 * **Content-Type**: `multipart/form-data`
 * **Form Parameters**:
   * `file`: Binary file (PDF, PNG, JPG; max 5MB)
   * `documentType`: `PRESCRIPTION`, `LAB_REPORT`, `DISCHARGE_SUMMARY`, `INSURANCE_CLAIM`, `OTHER`
-  * `uploadedById` (optional): User ID of uploader (defaults to patient if omitted)
+* *(Note: The uploader identity is automatically derived from the authenticated JWT bearer token).*
 * **Response `201 Created`**:
 ```json
 {
@@ -1616,6 +1723,7 @@ Secure storage and retrieval for patient medical records, lab reports, doctor pr
 ### 18.5 Delete Document
 * **Method**: `DELETE`
 * **Path**: `/api/documents/{id}`
+* **Access**: `ADMIN` only (`hasRole('ADMIN')`)
 * **Behavior**: Deletes metadata from the database and safely unlinks the file from private disk storage.
 * **Response**: `204 No Content`
 
@@ -1623,20 +1731,21 @@ Secure storage and retrieval for patient medical records, lab reports, doctor pr
 
 ## 19. Push Notifications & Device Token Endpoints (`/api/devices` & `/api/notifications`)
 
-Manages client push device tokens (FCM/APNS) and in-app notifications for appointment reminders, order updates, and enquiry responses.
+Manages client push device tokens (FCM/APNS) and in-app notifications for appointment reminders, order updates, and enquiry responses. All endpoints automatically identify the user from the authenticated JWT token (`Authorization: Bearer <token>`).
 
 ### 19.1 Register Push Device Token
 * **Method**: `POST`
 * **Path**: `/api/devices/register`
+* **Authentication**: Bearer token (Authenticated User)
 * **Request Body**:
 ```json
 {
-  "userId": 5,
   "token": "fcm_device_token_sample_string_89123891",
   "platform": "ANDROID"
 }
 ```
-* **Platforms**: `ANDROID`, `IOS`, `WEB`
+* **Supported Platforms**: `ANDROID`, `IOS` (defined by `DevicePlatform` enum)
+* *(Note: User ID is automatically obtained from the authenticated token; no `userId` is required in the body).*
 * **Response `200 OK`**:
 ```json
 {
@@ -1647,22 +1756,31 @@ Manages client push device tokens (FCM/APNS) and in-app notifications for appoin
 }
 ```
 
-### 19.2 List Registered Devices for User
+---
+
+### 19.2 List Registered Devices for Authenticated User
 * **Method**: `GET`
-* **Path**: `/api/devices/user/{userId}`
-* **Response `200 OK`**: List of `DeviceResponseDTO` objects.
+* **Path**: `/api/devices`
+* **Authentication**: Bearer token (Authenticated User)
+* **Response `200 OK`**: List of `DeviceResponseDTO` objects registered to the current user.
+
+---
 
 ### 19.3 Unregister Device Token
 * **Method**: `DELETE`
 * **Path**: `/api/devices/token/{token}`
+* **Authentication**: Bearer token (Authenticated User)
 * **Response**: `204 No Content`
+
+---
 
 ### 19.4 List In-App Notifications
 * **Method**: `GET`
 * **Path**: `/api/notifications`
+* **Authentication**: Bearer token (Authenticated User)
 * **Query Parameters**:
-  * `userId`: User ID
-  * `page`, `size`, `sort`
+  * `unreadOnly` (optional, default `false`): Filter for unread notifications only
+  * `page` (default `0`), `size` (default `20`), `sort` (default `createdAt,desc`)
 * **Response `200 OK`**:
 ```json
 {
@@ -1681,9 +1799,12 @@ Manages client push device tokens (FCM/APNS) and in-app notifications for appoin
 }
 ```
 
+---
+
 ### 19.5 Get Unread Notifications Count
 * **Method**: `GET`
-* **Path**: `/api/notifications/unread-count?userId=5`
+* **Path**: `/api/notifications/unread-count`
+* **Authentication**: Bearer token (Authenticated User)
 * **Response `200 OK`**:
 ```json
 {
@@ -1691,19 +1812,28 @@ Manages client push device tokens (FCM/APNS) and in-app notifications for appoin
 }
 ```
 
+---
+
 ### 19.6 Mark Notification as Read
 * **Method**: `PATCH`
-* **Path**: `/api/notifications/{id}/read?userId=5`
+* **Path**: `/api/notifications/{id}/read`
+* **Authentication**: Bearer token (Authenticated User)
 * **Response `200 OK`**: Updated `NotificationResponseDTO` with `read: true`.
+
+---
 
 ### 19.7 Mark All Notifications Read
 * **Method**: `PATCH`
-* **Path**: `/api/notifications/read-all?userId=5`
+* **Path**: `/api/notifications/read-all`
+* **Authentication**: Bearer token (Authenticated User)
 * **Response**: `204 No Content`
+
+---
 
 ### 19.8 Delete Notification
 * **Method**: `DELETE`
-* **Path**: `/api/notifications/{id}?userId=5`
+* **Path**: `/api/notifications/{id}`
+* **Authentication**: Bearer token (Authenticated User)
 * **Response**: `204 No Content`
 
 ---
@@ -1920,3 +2050,43 @@ Manages public and administrative FAQ sections with categories, instant search, 
   "error": "Access denied: insufficient permissions"
 }
 ```
+
+
+---
+
+## 24. Production Environment Configuration & Deployment
+
+The application uses an environment-driven `application.properties` architecture compatible with standard 12-factor cloud deployment (Docker, Kubernetes, AWS, Heroku, Render). All hardcoded values have fallback defaults for local development while allowing full production configuration via environment variables or `.env` files.
+
+A complete reference template is available in the repository root as [`.env.example`](Hospital/.env.example).
+
+### 24.1 Key Environment Variables
+
+| Variable | Description | Default (Local) | Production Recommended |
+|---|---|---|---|
+| `PORT` or `SERVER_PORT` | HTTP Server port | `8080` | `8080` (or injected by cloud provider) |
+| `SPRING_PROFILES_ACTIVE` | Active Spring profile | `local` | `prod` (activates live Meta WhatsApp OTP delivery) |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC connection URL | `jdbc:postgresql://localhost:5432/hospital_db` | `jdbc:postgresql://<db_host>:<db_port>/<db_name>` |
+| `SPRING_DATASOURCE_USERNAME` | Database username | `postgres` | Secret |
+| `SPRING_DATASOURCE_PASSWORD` | Database password | `password` | Secret |
+| `DB_POOL_MAX_SIZE` | HikariCP maximum connection pool size | `10` | `20` - `50` (based on server RAM/CPU) |
+| `DB_POOL_MIN_IDLE` | HikariCP minimum idle connections | `5` | `5` - `10` |
+| `SPRING_JPA_HIBERNATE_DDL_AUTO` | Hibernate schema management | `update` | `update` or `validate` |
+| `SPRING_JPA_SHOW_SQL` | Log SQL queries (Disable in prod for PHI privacy) | `false` | `false` |
+| `HOSPITAL_JWT_SECRET_BASE64` | Base64-encoded 32-byte secret for JWT signing | *(Preconfigured default)* | Strong randomly generated 256-bit Base64 key |
+| `HOSPITAL_JWT_EXPIRATION_SECONDS` | JWT Token validity duration | `3600` (1 hour) | `3600` - `86400` |
+| `HOSPITAL_OTP_HMAC_SECRET` | Secret for hashing & verifying OTPs | *(Preconfigured default)* | Strong random secret |
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta WhatsApp Cloud API Phone Number ID | *(Empty)* | Required when profile is `prod` |
+| `WHATSAPP_ACCESS_TOKEN` | Meta System User permanent access token | *(Empty)* | Required when profile is `prod` |
+| `WHATSAPP_OTP_TEMPLATE_NAME` | WhatsApp approved OTP template identifier | `hospital_otp_verification` | Configured template name |
+| `DOCUMENT_STORAGE_DIR` | Private filesystem directory for patient uploads | `./private-storage/documents` | Persistent volume mount path |
+| `LOGGING_LEVEL_ROOT` | Application root logging level | `INFO` | `INFO` or `WARN` |
+| `LOGGING_LEVEL_SECURITY` | Spring Security log level (Avoid DEBUG in prod) | `INFO` | `INFO` or `WARN` |
+
+### 24.2 Profile Behavior Overview
+* **`local` Profile**:
+  * Uses `LocalSmsSender` to log generated OTPs directly to application console for fast offline development.
+  * Does not initiate external network calls to Meta WhatsApp APIs.
+* **`prod` Profile**:
+  * Activates `WhatsAppCloudApiSender` and `WhatsAppConfig`.
+  * Transmits 6-digit verification OTPs to patients over Meta WhatsApp Cloud API via HTTPS using the configured template.
